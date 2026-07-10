@@ -1,7 +1,7 @@
 const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
 const API_BASE = isLocal
   ? 'http://localhost:3000/Droppingship/api'
-  : 'https://sstbet.site.je/drop/Droppingship/api';
+  : 'https://sstbet.onrender.com/Droppingship/api';
 
 window.API_BASE = API_BASE;
 
@@ -20,7 +20,7 @@ async function apiFetch(path, options = {}) {
     return response.json();
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('API Node nao esta rodando. Abra outro terminal e execute npm run dev.');
+      throw new Error('Não foi possível conectar à API do servidor.');
     }
     throw error;
   }
