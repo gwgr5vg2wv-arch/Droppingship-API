@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="260" height="260" viewBox="0 0 260 260" role="img" aria-label="Bot de IA">
+  <rect width="260" height="260" rx="42" fill="#111a24"/>
+  <rect x="55" y="72" width="150" height="112" rx="32" fill="#0c141d" stroke="#27d17f" stroke-width="6"/>
+  <circle cx="105" cy="125" r="12" fill="#27d17f"/>
+  <circle cx="155" cy="125" r="12" fill="#27d17f"/>
+  <path d="M105 154c18 14 34 14 50 0" fill="none" stroke="#93a4b8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M130 72V42" stroke="#27d17f" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="130" cy="35" r="12" fill="#4aa3ff"/>
+  <rect x="80" y="196" width="100" height="18" rx="9" fill="#27d17f"/>
+</svg>

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="220" viewBox="0 0 320 220" role="img" aria-label="Estado vazio">
+  <rect width="320" height="220" rx="22" fill="#111a24"/>
+  <rect x="54" y="52" width="212" height="116" rx="18" fill="#0c141d" stroke="#243244"/>
+  <path d="M88 129l40-38 32 31 24-22 48 49" fill="none" stroke="#27d17f" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="222" cy="78" r="14" fill="#4aa3ff"/>
+  <rect x="96" y="184" width="128" height="12" rx="6" fill="#2a3b4f"/>
+</svg>

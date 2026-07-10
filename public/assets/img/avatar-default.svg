@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Avatar padrao">
+  <defs>
+    <linearGradient id="g" x1="20" y1="10" x2="140" y2="150" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#27d17f"/>
+      <stop offset="1" stop-color="#4aa3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="160" height="160" rx="80" fill="#0c141d"/>
+  <circle cx="80" cy="64" r="30" fill="url(#g)"/>
+  <path d="M31 137c8-31 26-47 49-47s41 16 49 47" fill="url(#g)" opacity=".92"/>
+  <circle cx="118" cy="42" r="13" fill="#27d17f"/>
+  <circle cx="118" cy="42" r="5" fill="#062113"/>
+</svg>

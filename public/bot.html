@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Droppingship Bot ERP</title>
+    <link rel="stylesheet" href="assets/css/app.css">
+    <link rel="stylesheet" href="assets/css/credentials.css">
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <span>DS</span>
+          <div>
+            <strong>Droppingship</strong>
+            <small>SaaS ERP Mock</small>
+          </div>
+        </div>
+        <nav>
+          <button class="active" data-tab="dashboard">Dashboard</button>
+          <button data-tab="trends">Tendências</button>
+          <button data-tab="search">Buscar Produtos</button>
+          <button data-tab="saved">Produtos Salvos</button>
+          <button data-tab="queue">Fila</button>
+          <button data-tab="orders">Pedidos</button>
+          <button data-tab="finance">Financeiro</button>
+          <button data-tab="integrations">Integrações</button>
+          <button data-tab="setup-apis">Setup APIs</button>
+          <button data-tab="settings">Configuracoes</button>
+        </nav>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p>Operacao de casa</p>
+            <h1>Central Droppingship</h1>
+          </div>
+          <div class="user-menu">
+            <img id="header-avatar" src="assets/img/avatar-default.svg" alt="Avatar do usuario">
+            <div>
+              <strong id="header-name">Admin</strong>
+              <span id="header-plan">Starter</span>
+            </div>
+            <span class="online">Online</span>
+          </div>
+        </header>
+
+        <section id="dashboard" class="tab-panel active">
+          <div class="hero">
+            <div class="hero-copy">
+              <span class="status-dot">Modo simulacao</span>
+              <h2>Seu assistente inteligente de dropshipping</h2>
+              <p>Encontre produtos, calcule lucro, gere anuncios e organize vendas em um so lugar.</p>
+              <div class="hero-actions">
+                <button data-tab="search">Buscar Produtos</button>
+                <span class="mini-badge">IA mock ativa</span>
+                <span class="mini-badge">ERP leve</span>
+              </div>
+            </div>
+            <img src="assets/img/app-preview.svg" alt="Preview visual do aplicativo">
+          </div>
+          <div class="section-head">
+            <h2>Dashboard</h2>
+            <p>Indicadores essenciais para decidir o que testar hoje.</p>
+          </div>
+          <div id="dashboard-cards" class="metrics-grid"></div>
+        </section>
+
+        <section id="trends" class="tab-panel">
+          <div class="section-head">
+            <h2>Tendências</h2>
+            <p>Mais procurados, virais e oportunidades simuladas para começar rápido.</p>
+          </div>
+          <div id="trends-list" class="trend-grid"></div>
+        </section>
+
+        <section id="search" class="tab-panel">
+          <div class="section-head">
+            <h2>Buscar Produtos</h2>
+            <p>Oportunidades com margem, tendencia e anuncio pronto.</p>
+          </div>
+          <form id="search-form" class="search-bar">
+            <input id="query" name="query" value="fone bluetooth" placeholder="Ex: fone bluetooth, garrafa, relogio">
+            <select id="source" name="source">
+              <option value="mock">mock</option>
+              <option value="mercadoLivre">mercadoLivre</option>
+              <option value="shopee">shopee</option>
+              <option value="aliexpress">aliexpress</option>
+              <option value="temu">temu</option>
+              <option value="tiktokShop">tiktokShop</option>
+            </select>
+            <button>Pesquisar</button>
+            <button type="button" class="secondary" id="real-search-button">Buscar online público</button>
+          </form>
+          <div id="source-status-list" class="source-status-list"></div>
+          <div id="product-results" class="product-grid"></div>
+        </section>
+
+        <section id="saved" class="tab-panel">
+          <div class="section-head">
+            <h2>Produtos Salvos</h2>
+            <p>Itens aprovados para revisar e mandar para fila.</p>
+          </div>
+          <div id="saved-products" class="product-grid"></div>
+        </section>
+
+        <section id="queue" class="tab-panel">
+          <div class="section-head">
+            <h2>Fila</h2>
+            <p>Produtos preparados para publicacao simulada.</p>
+          </div>
+          <div id="publish-queue" class="stack"></div>
+        </section>
+
+        <section id="orders" class="tab-panel">
+          <div class="section-head">
+            <h2>Pedidos</h2>
+            <p>Acompanhamento simples de vendas e rastreio.</p>
+          </div>
+          <button class="secondary section-action" onclick="syncOrders()">Sincronizar pedidos</button>
+          <div id="orders-list" class="stack"></div>
+        </section>
+
+        <section id="finance" class="tab-panel">
+          <div class="section-head">
+            <h2>Financeiro</h2>
+            <p>Receita, custos, lucro e taxas simuladas.</p>
+          </div>
+          <div id="finance-cards" class="metrics-grid"></div>
+        </section>
+
+        <section id="integrations" class="tab-panel">
+          <div class="section-head">
+            <h2>Integrações</h2>
+            <p>Conecte contas oficiais por OAuth. Sem credenciais, tudo continua em modo mock.</p>
+          </div>
+          <div id="integrations-list" class="integration-grid"></div>
+        </section>
+
+        <section id="setup-apis" class="tab-panel">
+          <div class="section-head">
+            <h2>Painel da Integradora</h2>
+            <p>Setup oficial das APIs. Cole as chaves aqui e acompanhe o que ainda falta configurar.</p>
+          </div>
+
+          <div class="setup-warning-grid">
+            <strong>Nao envie suas Secret Keys por WhatsApp.</strong>
+            <strong>Cole as keys somente neste painel.</strong>
+            <strong>Se aparecer erro, tire print sem mostrar a secret.</strong>
+          </div>
+
+          <div class="setup-layout">
+            <aside class="setup-checklist">
+              <div class="setup-panel-head">
+                <h3>Checklist geral</h3>
+                <button type="button" class="secondary" id="export-setup-status">Exportar status do setup</button>
+              </div>
+              <label class="check"><input type="checkbox"> Criar app Mercado Livre</label>
+              <label class="check"><input type="checkbox"> Colar Client ID</label>
+              <label class="check"><input type="checkbox"> Colar Secret</label>
+              <label class="check"><input type="checkbox"> Copiar Redirect URI para o Mercado Livre</label>
+              <label class="check"><input type="checkbox"> Salvar credenciais</label>
+              <label class="check"><input type="checkbox"> Testar API</label>
+              <label class="check"><input type="checkbox"> Conectar conta</label>
+              <label class="check"><input type="checkbox"> Repetir para opcionais</label>
+              <div id="setup-export-output" class="setup-export-output" aria-live="polite"></div>
+            </aside>
+
+            <div id="setup-api-cards" class="setup-api-grid"></div>
+          </div>
+        </section>
+
+        <section id="settings" class="tab-panel">
+          <div class="section-head">
+            <h2>Configuracoes</h2>
+            <p>Perfil da loja e preferencias da operacao.</p>
+          </div>
+          <div id="settings-error"></div>
+          <form id="settings-form" class="settings-form">
+            <div class="profile-card">
+              <img id="profile-avatar" src="assets/img/avatar-default.svg" alt="Foto do perfil">
+              <div>
+                <span class="mini-badge">Perfil</span>
+                <h3 id="profile-title">Minha Loja Dropshipping</h3>
+                <p id="profile-email">admin@droppingship.local</p>
+                <button type="button" class="secondary">Alterar foto</button>
+              </div>
+            </div>
+
+            <div class="settings-grid">
+              <label>Nome <input name="profileName" type="text"></label>
+              <label>Nome da loja <input name="storeName" type="text"></label>
+              <label>E-mail <input name="email" type="email"></label>
+              <label>Plano atual <input name="plan" type="text"></label>
+              <label>Status OpenAI <strong id="openai-status" class="status-badge">verificando</strong></label>
+              <label>Margem minima desejada (%) <input name="minimumMargin" type="number" min="0"></label>
+              <label>Taxa padrao marketplace (%) <input name="defaultMarketplaceFeePercent" type="number" min="0"></label>
+              <label>Lucro minimo (R$) <input name="minimumProfit" type="number" min="0"></label>
+              <label class="check"><input name="automaticMode" type="checkbox"> Modo automatico ligado</label>
+            </div>
+
+            <div class="marketplaces">
+              <img src="assets/img/marketplace-icons.svg" alt="Icones de marketplaces">
+              <div id="settings-integration-summary" class="integration-summary"></div>
+              <div id="settings-integration-buttons" class="settings-connect-grid"></div>
+              <label class="check"><input name="mercadoLivre" type="checkbox"> Mercado Livre</label>
+              <label class="check"><input name="shopee" type="checkbox"> Shopee</label>
+              <label class="check"><input name="aliexpress" type="checkbox"> AliExpress</label>
+              <label class="check"><input name="temu" type="checkbox"> Temu</label>
+              <label class="check"><input name="tiktokShop" type="checkbox"> TikTok Shop</label>
+            </div>
+            <button>Salvar configuracoes</button>
+          </form>
+        </section>
+      </main>
+    </div>
+
+    <div id="toast" class="toast"></div>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/dashboard.js"></script>
+    <script src="assets/js/products.js"></script>
+    <script src="assets/js/finance.js"></script>
+    <script src="assets/js/settings.js"></script>
+    <script src="assets/js/setupApis.js"></script>
+    <script src="assets/js/app.js"></script>
+  </body>
+</html>

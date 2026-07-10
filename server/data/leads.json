@@ -1,0 +1,39 @@
+[
+  {
+    "source": "temu",
+    "title": "fone kit promoção",
+    "cost": 28,
+    "salePrice": 79.9,
+    "shipping": 15,
+    "feesPercent": 16,
+    "margin": {
+      "cost": 28,
+      "salePrice": 79.9,
+      "shipping": 15,
+      "fees": 12.784,
+      "tax": 0,
+      "profit": 24.116000000000007,
+      "roi": 86.12857142857145,
+      "marginPercent": 30.18272841051315
+    },
+    "ai": {
+      "score": 8,
+      "title": "fone kit promoção | Envio rápido",
+      "description": "Produto com boa procura. Conferir fornecedor, prazo, avaliações e regras da plataforma antes de anunciar.",
+      "hooks": [
+        "Achadinho que resolve seu dia",
+        "Preço bom e margem saudável",
+        "Ideal para vender em vídeo curto"
+      ],
+      "warnings": [
+        "Validar estoque e prazo",
+        "Não copiar anúncio de terceiros",
+        "Checar taxa real da plataforma"
+      ]
+    },
+    "createdAt": "2026-07-09T00:31:27.186Z"
+  }
+]:27.186Z"
+  }
+]
+]
