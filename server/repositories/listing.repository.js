@@ -61,7 +61,7 @@ export function createListingRepository(prisma) {
       return prisma.listing.findMany({
         where: { workspaceId },
         include: { savedProduct: { include: { productSource: true } }, integration: true },
-        orderBy: { updatedAt: 'desc' }
+        orderBy: { id: 'desc' }
       });
     }
   };
@@ -89,8 +89,8 @@ export function serializeListing(listing) {
     salePrice: Number(listing.price || 0),
     currency: listing.currency,
     stock: listing.stock,
-    queuedAt: listing.createdAt?.toISOString?.() || '',
-    updatedAt: listing.updatedAt?.toISOString?.() || ''
+    queuedAt: listing.publishedAt?.toISOString?.() || listing.lastSyncedAt?.toISOString?.() || '',
+    updatedAt: listing.lastSyncedAt?.toISOString?.() || listing.publishedAt?.toISOString?.() || ''
   };
 }
 
