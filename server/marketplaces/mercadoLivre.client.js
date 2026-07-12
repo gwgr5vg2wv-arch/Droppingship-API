@@ -5,14 +5,20 @@ const authBase = 'https://auth.mercadolivre.com.br/authorization';
 const apiBase = 'https://api.mercadolibre.com';
 
 export default {
-  async publicSearch(query) {
+  async publicSearch(query, context = {}) {
+    const token = getStoredToken(context.db, 'mercadoLivre');
+    if (token) return this.searchProducts(query, context);
+
     const { data } = await axios.get(`${apiBase}/sites/MLB/search`, {
       params: { q: query, limit: 20 },
       headers: {
         Accept: 'application/json',
         'User-Agent': 'DroppingshipSaaS/1.0 (+http://localhost:8080/Droppingship/bot.html)'
       },
-      timeout: 10000
+      timeout: 8000,
+      validateStatus: (status) => status < 400
+    }).catch((error) => {
+      throw marketplaceHttpError(error);
     });
     return { products: data.results || [], raw: data, mode: 'public' };
   },
@@ -59,16 +65,23 @@ export default {
     if (!token) throw missingConnectionError('mercadoLivre');
     const { data } = await axios.get(`${apiBase}/sites/MLB/search`, {
       params: { q: query, limit: 10 },
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
+      timeout: 8000,
+      validateStatus: (status) => status < 400
+    }).catch((error) => {
+      throw marketplaceHttpError(error);
     });
-    return { products: data.results || [], raw: data };
+    return { products: data.results || [], raw: data, mode: 'real' };
   },
 
   async publishProduct(product, context = {}) {
     const token = getStoredToken(context.db, 'mercadoLivre');
     if (!token) throw missingConnectionError('mercadoLivre');
     const { data } = await axios.post(`${apiBase}/items`, product, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 10000
+    }).catch((error) => {
+      throw marketplaceHttpError(error);
     });
     return { externalId: data.id, raw: data };
   },
@@ -77,7 +90,10 @@ export default {
     const token = getStoredToken(context.db, 'mercadoLivre');
     if (!token) throw missingConnectionError('mercadoLivre');
     const { data } = await axios.get(`${apiBase}/orders/search`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 10000
+    }).catch((error) => {
+      throw marketplaceHttpError(error);
     });
     return { orders: data.results || [], raw: data };
   },
@@ -90,8 +106,26 @@ export default {
     const token = getStoredToken(context.db, 'mercadoLivre');
     if (!token) throw missingConnectionError('mercadoLivre');
     const { data } = await axios.get(`${apiBase}/users/me`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 8000
+    }).catch((error) => {
+      throw marketplaceHttpError(error);
     });
     return { connected: true, account: { id: data.id, nickname: data.nickname } };
   }
 };
+
+function marketplaceHttpError(error) {
+  const status = error?.response?.status;
+  const mapped = new Error('Integracao oficial indisponivel.');
+  mapped.status = status;
+  mapped.code = error?.code;
+  mapped.publicMessage = {
+    401: 'Autenticacao necessaria.',
+    403: 'Busca publica indisponivel.',
+    404: 'Recurso oficial nao encontrado.',
+    429: 'Limite temporario da API oficial.',
+    500: 'API oficial indisponivel.'
+  }[status] || 'Integracao oficial indisponivel.';
+  return mapped;
+}

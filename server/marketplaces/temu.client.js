@@ -10,7 +10,7 @@ function requireConfig() {
 export default {
   async publicSearch() {
     const error = new Error('Busca publica Temu bloqueada ou dependente de aprovacao partner.');
-    error.publicMessage = 'Busca publica bloqueada';
+    error.publicMessage = 'Fonte publica indisponivel';
     throw error;
   },
 
@@ -61,3 +61,4 @@ export default {
     return { connected: true };
   }
 };
+

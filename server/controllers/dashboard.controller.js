@@ -1,4 +1,4 @@
-import { readDb } from '../services/mockData.service.js';
+﻿import { readDb } from '../services/dataStore.service.js';
 
 export async function dashboardSummary(req, res, next) {
   try {
@@ -14,7 +14,8 @@ export async function dashboardSummary(req, res, next) {
       foundToday: db.products.length,
       savedProducts: db.savedProducts.length,
       publishQueue: db.publishQueue.length,
-      simulatedOrders: db.orders.length,
+      orders: db.orders.length,
+      simulatedOrders: 0,
       estimatedProfit: round(profitTotal),
       averageRoi: round(averageRoi)
     });
@@ -26,3 +27,4 @@ export async function dashboardSummary(req, res, next) {
 function round(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
+

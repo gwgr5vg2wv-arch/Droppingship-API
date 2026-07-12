@@ -1,12 +1,12 @@
-import { getMarketplaceClient } from '../services/marketplace.service.js';
-import { readDb, writeDb } from '../services/mockData.service.js';
+﻿import { getMarketplaceClient } from '../services/marketplace.service.js';
+import { readDb, writeDb } from '../services/dataStore.service.js';
 import { marketplaces, normalizeMarketplace, publicStatusFor, sanitizeError } from '../services/integrationMode.service.js';
 
 export async function integrationStatus(req, res, next) {
   try {
     const db = await readDb();
     res.json({
-      mode: process.env.INTEGRATION_MODE || 'mock',
+      mode: 'real',
       integrations: marketplaces.map((marketplace) => publicStatusFor(marketplace, db.integrations?.[marketplace]))
     });
   } catch (error) {
@@ -51,3 +51,4 @@ export async function oauthCallback(req, res, next) {
     res.status(error.code === 'NOT_CONNECTED' ? 400 : 500).json({ error: sanitizeError(error) });
   }
 }
+

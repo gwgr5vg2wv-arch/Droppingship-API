@@ -1,17 +1,38 @@
 {
   "name": "droppingship-saas-erp",
   "version": "1.0.0",
-  "description": "Base SaaS/ERP de dropshipping com IA em modo mock.",
+  "description": "Base SaaS/ERP de dropshipping com integracoes reais.",
   "type": "module",
   "scripts": {
     "dev": "node --watch server/index.js",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "node --test",
+    "check": "node --check server/index.js",
+    "build": "node --check server/index.js",
+    "lint": "node scripts/check-imports.js",
+    "test:integration": "node --test test/*.test.js",
+    "healthcheck": "node scripts/healthcheck.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:migrate:status": "prisma migrate status",
+    "db:generate": "prisma generate",
+    "db:seed": "node scripts/seed-dev.js"
   },
   "dependencies": {
+    "@prisma/client": "^6.19.3",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "openai": "^4.77.0"
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "openai": "^4.77.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "prisma": "^6.19.3"
   }
 }

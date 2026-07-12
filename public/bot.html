@@ -8,13 +8,57 @@
     <link rel="stylesheet" href="assets/css/credentials.css">
   </head>
   <body>
+    <section id="auth-screen" class="auth-screen">
+      <div class="auth-panel">
+        <div class="brand auth-brand">
+          <span>DS</span>
+          <div>
+            <strong>Droppingship</strong>
+            <small>Acesso seguro ao SaaS</small>
+          </div>
+        </div>
+        <div class="auth-tabs">
+          <button type="button" class="active" data-auth-tab="login">Login</button>
+          <button type="button" data-auth-tab="register">Cadastro</button>
+          <button type="button" data-auth-tab="forgot">Esqueci</button>
+          <button type="button" data-auth-tab="reset">Redefinir</button>
+          <button type="button" data-auth-tab="verify">Verificar</button>
+        </div>
+        <form id="login-form" class="auth-form active" data-auth-panel="login">
+          <label>Email <input name="email" type="email" autocomplete="email" required></label>
+          <label>Senha <input name="password" type="password" autocomplete="current-password" required></label>
+          <button>Entrar</button>
+        </form>
+        <form id="register-form" class="auth-form" data-auth-panel="register">
+          <label>Nome <input name="name" required minlength="2"></label>
+          <label>Email <input name="email" type="email" autocomplete="email" required></label>
+          <label>Senha forte <input name="password" type="password" autocomplete="new-password" required minlength="10"></label>
+          <label>Workspace <input name="workspaceName" placeholder="Minha loja"></label>
+          <button>Criar conta</button>
+        </form>
+        <form id="forgot-form" class="auth-form" data-auth-panel="forgot">
+          <label>Email <input name="email" type="email" required></label>
+          <button>Solicitar redefinicao</button>
+        </form>
+        <form id="reset-form" class="auth-form" data-auth-panel="reset">
+          <label>Token <input name="token" required></label>
+          <label>Nova senha <input name="password" type="password" required minlength="10"></label>
+          <button>Redefinir senha</button>
+        </form>
+        <form id="verify-form" class="auth-form" data-auth-panel="verify">
+          <label>Token <input name="token" required></label>
+          <button>Verificar email</button>
+        </form>
+        <div id="auth-message" class="auth-message" aria-live="polite"></div>
+      </div>
+    </section>
     <div class="shell">
       <aside class="sidebar">
         <div class="brand">
           <span>DS</span>
           <div>
             <strong>Droppingship</strong>
-            <small>SaaS ERP Mock</small>
+            <small>SaaS ERP Real</small>
           </div>
         </div>
         <nav>
@@ -26,6 +70,10 @@
           <button data-tab="orders">Pedidos</button>
           <button data-tab="finance">Financeiro</button>
           <button data-tab="integrations">Integrações</button>
+          <button data-tab="onboarding">Onboarding</button>
+          <button data-tab="workspaces">Workspaces</button>
+          <button data-tab="team">Equipe</button>
+          <button data-tab="sessions">Sessões</button>
           <button data-tab="setup-apis">Setup APIs</button>
           <button data-tab="settings">Configuracoes</button>
         </nav>
@@ -44,18 +92,19 @@
               <span id="header-plan">Starter</span>
             </div>
             <span class="online">Online</span>
+            <button id="logout-button" class="secondary" type="button">Sair</button>
           </div>
         </header>
 
         <section id="dashboard" class="tab-panel active">
           <div class="hero">
             <div class="hero-copy">
-              <span class="status-dot">Modo simulacao</span>
+              <span class="status-dot">Modo real</span>
               <h2>Seu assistente inteligente de dropshipping</h2>
               <p>Encontre produtos, calcule lucro, gere anuncios e organize vendas em um so lugar.</p>
               <div class="hero-actions">
                 <button data-tab="search">Buscar Produtos</button>
-                <span class="mini-badge">IA mock ativa</span>
+                <span class="mini-badge">Dados reais</span>
                 <span class="mini-badge">ERP leve</span>
               </div>
             </div>
@@ -69,11 +118,58 @@
         </section>
 
         <section id="trends" class="tab-panel">
-          <div class="section-head">
-            <h2>Tendências</h2>
-            <p>Mais procurados, virais e oportunidades simuladas para começar rápido.</p>
+          <div class="section-head trends-head">
+            <div>
+              <h2>Tendências de produtos</h2>
+              <p>Oportunidades compactas com imagem, margem, risco e concorrência para priorizar o que testar.</p>
+            </div>
+            <button type="button" id="refresh-trends">Atualizar</button>
           </div>
-          <div id="trends-list" class="trend-grid"></div>
+          <form id="trends-filters" class="trends-toolbar">
+            <input id="trend-search" name="trendSearch" placeholder="Buscar produto ou categoria">
+            <select id="trend-marketplace" name="trendMarketplace">
+              <option value="all">Todos marketplaces</option>              <option value="mercadoLivre">Mercado Livre</option>
+              <option value="shopee">Shopee</option>
+              <option value="aliexpress">AliExpress</option>
+              <option value="temu">Temu</option>
+              <option value="tiktokShop">TikTok Shop</option>
+            </select>
+            <select id="trend-category" name="trendCategory">
+              <option value="all">Todas categorias</option>
+              <option value="electronics">Eletrônicos</option>
+              <option value="home">Casa</option>
+              <option value="beauty">Beleza</option>
+              <option value="fashion">Moda</option>
+              <option value="tools">Ferramentas</option>
+              <option value="pet">Pet</option>
+              <option value="sports">Esportes</option>
+              <option value="generic">Outros</option>
+            </select>
+            <select id="trend-risk" name="trendRisk">
+              <option value="all">Todos riscos</option>
+              <option value="baixo">Baixo risco</option>
+              <option value="medio">Risco médio</option>
+              <option value="alto">Alto risco</option>
+            </select>
+            <select id="trend-competition" name="trendCompetition">
+              <option value="all">Toda concorrência</option>
+              <option value="baixo">Baixa</option>
+              <option value="medio">Média</option>
+              <option value="alto">Alta</option>
+            </select>
+            <select id="trend-sort" name="trendSort">
+              <option value="trend">Maior tendência</option>
+              <option value="roi">Maior ROI</option>
+              <option value="profit">Maior lucro</option>
+              <option value="sold">Mais vendidos</option>
+              <option value="competition">Menor concorrência</option>
+              <option value="risk">Menor risco</option>
+              <option value="delivery">Entrega mais rápida</option>
+            </select>
+          </form>
+          <div id="trends-summary" class="metrics-grid compact-metrics"></div>
+          <div id="trend-category-strip" class="category-strip"></div>
+          <div id="trends-list" class="product-grid trends-products"></div>
         </section>
 
         <section id="search" class="tab-panel">
@@ -83,9 +179,7 @@
           </div>
           <form id="search-form" class="search-bar">
             <input id="query" name="query" value="fone bluetooth" placeholder="Ex: fone bluetooth, garrafa, relogio">
-            <select id="source" name="source">
-              <option value="mock">mock</option>
-              <option value="mercadoLivre">mercadoLivre</option>
+            <select id="source" name="source">              <option value="mercadoLivre">mercadoLivre</option>
               <option value="shopee">shopee</option>
               <option value="aliexpress">aliexpress</option>
               <option value="temu">temu</option>
@@ -109,7 +203,7 @@
         <section id="queue" class="tab-panel">
           <div class="section-head">
             <h2>Fila</h2>
-            <p>Produtos preparados para publicacao simulada.</p>
+            <p>Produtos preparados para publicacao real via API oficial.</p>
           </div>
           <div id="publish-queue" class="stack"></div>
         </section>
@@ -126,7 +220,7 @@
         <section id="finance" class="tab-panel">
           <div class="section-head">
             <h2>Financeiro</h2>
-            <p>Receita, custos, lucro e taxas simuladas.</p>
+            <p>Receita, custos, lucro e taxas oficiais quando disponiveis.</p>
           </div>
           <div id="finance-cards" class="metrics-grid"></div>
         </section>
@@ -134,9 +228,59 @@
         <section id="integrations" class="tab-panel">
           <div class="section-head">
             <h2>Integrações</h2>
-            <p>Conecte contas oficiais por OAuth. Sem credenciais, tudo continua em modo mock.</p>
+            <p>Conecte contas oficiais por OAuth. Sem credenciais, a fonte aparece como nao conectada.</p>
           </div>
           <div id="integrations-list" class="integration-grid"></div>
+        </section>
+
+        <section id="onboarding" class="tab-panel">
+          <div class="section-head">
+            <h2>Onboarding</h2>
+            <p>Conta criada, workspace pronto e integracoes desconectadas ate autorizacao oficial.</p>
+          </div>
+          <form id="onboarding-form" class="settings-form">
+            <label>Nome comercial opcional <input name="workspaceName" placeholder="Nome da loja"></label>
+            <button>Salvar nome comercial</button>
+          </form>
+          <div class="metrics-grid" id="onboarding-cards"></div>
+        </section>
+
+        <section id="workspaces" class="tab-panel">
+          <div class="section-head">
+            <h2>Workspaces</h2>
+            <p>Escolha ou crie ambientes isolados para cada operacao.</p>
+          </div>
+          <form id="workspace-form" class="search-bar">
+            <input name="name" placeholder="Novo workspace">
+            <button>Criar</button>
+          </form>
+          <div id="workspace-list" class="stack"></div>
+        </section>
+
+        <section id="team" class="tab-panel">
+          <div class="section-head">
+            <h2>Equipe</h2>
+            <p>Convites e papeis do workspace atual.</p>
+          </div>
+          <form id="invite-form" class="search-bar">
+            <input name="email" type="email" placeholder="email@empresa.com">
+            <select name="role">
+              <option value="viewer">viewer</option>
+              <option value="operator">operator</option>
+              <option value="admin">admin</option>
+            </select>
+            <button>Convidar</button>
+          </form>
+          <div id="team-list" class="stack"></div>
+        </section>
+
+        <section id="sessions" class="tab-panel">
+          <div class="section-head">
+            <h2>Sessoes ativas</h2>
+            <p>Revogue acessos que voce nao reconhece.</p>
+          </div>
+          <button id="logout-all-button" class="secondary section-action" type="button">Sair de todas as sessoes</button>
+          <div id="session-list" class="stack"></div>
         </section>
 
         <section id="setup-apis" class="tab-panel">
@@ -219,6 +363,7 @@
 
     <div id="toast" class="toast"></div>
     <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
     <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/products.js"></script>
     <script src="assets/js/finance.js"></script>

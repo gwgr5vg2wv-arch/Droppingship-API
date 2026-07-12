@@ -1,4 +1,4 @@
-import { readDb } from '../services/mockData.service.js';
+﻿import { readDb } from '../services/dataStore.service.js';
 
 export async function financeSummary(req, res, next) {
   try {
@@ -17,7 +17,8 @@ export async function financeSummary(req, res, next) {
       profitTotal: round(profit),
       averageRoi: round(averageRoi),
       shippingTotal: round(shipping),
-      simulatedFees: round(fees)
+      marketplaceFees: round(fees),
+      simulatedFees: 0
     });
   } catch (error) {
     next(error);
@@ -31,3 +32,4 @@ function sum(items, key) {
 function round(value) {
   return Math.round((Number(value) + Number.EPSILON) * 100) / 100;
 }
+

@@ -1,6 +1,6 @@
-import { getAiStatus } from '../services/ai.service.js';
+﻿import { getAiStatus } from '../services/ai.service.js';
 import { getIntegrationMode, getTrendsMode } from '../services/integrationMode.service.js';
-import { readDb, writeDb } from '../services/mockData.service.js';
+import { readDb, writeDb } from '../services/dataStore.service.js';
 
 export async function getSettings(req, res, next) {
   try {
@@ -44,3 +44,4 @@ export async function saveSettings(req, res, next) {
     next(error);
   }
 }
+

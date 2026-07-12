@@ -1,5 +1,5 @@
-import axios from 'axios';
-import { readDb, writeDb } from './mockData.service.js';
+﻿import axios from 'axios';
+import { readDb, writeDb } from './dataStore.service.js';
 
 const oauthDefinitions = {
   mercadoLivre: {
@@ -55,7 +55,7 @@ export function isMarketplaceConfigured(marketplace) {
 
 export function getMercadoLivreAuthUrl() {
   if (!isMarketplaceConfigured('mercadoLivre')) {
-    throw new Error('Configuração do Mercado Livre ausente no servidor. Configure o .env.');
+    throw new Error('ConfiguraÃ§Ã£o do Mercado Livre ausente no servidor. Configure o .env.');
   }
 
   const redirectUri = process.env.MERCADO_LIVRE_REDIRECT_URI;
@@ -121,7 +121,7 @@ export async function checkMercadoLivreStatus(db) {
       sellerId: integration.sellerId || null,
       nickname: null,
       lastCheck: new Date().toISOString(),
-      lastError: 'Conta Mercado Livre não conectada.'
+      lastError: 'Conta Mercado Livre nÃ£o conectada.'
     };
   }
 
@@ -164,3 +164,4 @@ export async function checkMercadoLivreStatus(db) {
     };
   }
 }
+
