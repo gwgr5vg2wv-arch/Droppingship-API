@@ -135,7 +135,7 @@ function signOAuthState(payload) {
     throw error;
   }
   return jwt.sign(payload, env.JWT_SECRET, {
-    expiresIn: '10m',
+    expiresIn: '30m',
     issuer: 'droppingship-api',
     audience: `oauth:${payload.marketplace}`
   });
@@ -153,7 +153,7 @@ function verifyOAuthState(value, marketplace) {
       audience: `oauth:${marketplace}`
     });
   } catch {
-    const error = new Error('State OAuth invalido ou expirado.');
+    const error = new Error('State OAuth invalido ou expirado. Inicie a conexao pelo mesmo dominio do callback HTTPS configurado no Mercado Livre, normalmente https://sstbet.onrender.com/Droppingship/bot.html#integrations, e nao por localhost.');
     error.status = 400;
     throw error;
   }

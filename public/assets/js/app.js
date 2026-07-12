@@ -479,12 +479,29 @@ window.publishPreparedProduct = async (id, context) => {
 window.connectMarketplace = async (marketplace) => {
   try {
     const data = await window.DroppingshipApi.startOAuth(marketplace);
+    if (shouldUseProductionForOAuth(data.authUrl)) {
+      const redirectUri = new URL(data.authUrl).searchParams.get('redirect_uri');
+      const productionUrl = `${new URL(redirectUri).origin}/Droppingship/bot.html#integrations`;
+      toast('OAuth Mercado Livre deve ser iniciado no Render, no mesmo dominio do callback.');
+      window.open(productionUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     window.open(data.authUrl, '_blank', 'noopener,noreferrer');
     toast('URL de conexao aberta.');
   } catch (error) {
     toast(error.message);
   }
 };
+
+function shouldUseProductionForOAuth(authUrl = '') {
+  if (!['localhost', '127.0.0.1'].includes(location.hostname)) return false;
+  try {
+    const redirectUri = new URL(authUrl).searchParams.get('redirect_uri') || '';
+    return redirectUri.startsWith('https://') && !redirectUri.includes('localhost');
+  } catch {
+    return false;
+  }
+}
 
 window.syncOrders = async () => {
   try {
