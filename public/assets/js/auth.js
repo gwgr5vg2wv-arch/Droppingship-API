@@ -129,7 +129,14 @@ function applyAuth(result) {
   document.getElementById('auth-screen')?.classList.add('hidden');
   document.querySelector('.shell')?.classList.remove('locked');
   updateHeaderIdentity();
-  loadAuthWorkspaceData();
+  loadAuthWorkspaceData().finally(() => {
+    window.dispatchEvent(new CustomEvent('droppingship:auth-ready', {
+      detail: {
+        user: authState.user,
+        workspace: authState.workspace
+      }
+    }));
+  });
 }
 
 function showAuth() {

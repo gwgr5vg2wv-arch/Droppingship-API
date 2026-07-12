@@ -18,8 +18,10 @@ let searchDebounce = null;
 document.addEventListener('DOMContentLoaded', async () => {
   setupTabs();
   setupForms();
+  setupAuthReadyRefresh();
   await refreshAll();
   activateHashTab();
+  showOAuthReturnMessage();
 });
 
 function setupTabs() {
@@ -501,6 +503,22 @@ function shouldUseProductionForOAuth(authUrl = '') {
   } catch {
     return false;
   }
+}
+
+function setupAuthReadyRefresh() {
+  window.addEventListener('droppingship:auth-ready', async () => {
+    await Promise.allSettled([loadIntegrations(), loadDashboard(), loadProducts()]);
+    showOAuthReturnMessage();
+  });
+}
+
+function showOAuthReturnMessage() {
+  const params = new URLSearchParams(location.search);
+  const integration = params.get('integration');
+  const status = params.get('status');
+  if (!integration || !status) return;
+  if (status === 'connected') toast('Conta conectada. Atualizando integracoes.');
+  if (status === 'error') toast('Falha ao conectar marketplace.');
 }
 
 window.syncOrders = async () => {
