@@ -12,7 +12,8 @@ export async function buildHealth({ ready = false } = {}) {
   const readyFailures = [
     ...unavailableModules,
     ...(database.connected ? [] : [{ name: 'DATABASE_CONNECTION', message: database.message }]),
-    ...(database.migrations && !database.migrations.ok ? [{ name: 'DATABASE_MIGRATIONS', message: 'Migrations pendentes ou sem resolucao.' }] : [])
+    ...(database.migrations && !database.migrations.ok ? [{ name: 'DATABASE_MIGRATIONS', message: 'Migrations pendentes ou sem resolucao.' }] : []),
+    ...(database.schema && !database.schema.ok ? [{ name: 'DATABASE_SCHEMA', message: 'Tabelas principais ausentes. Execute as migrations do Prisma.' }] : [])
   ];
 
   return {

@@ -46,6 +46,15 @@ export async function checkDatabase() {
         `
       : [{ total: 0, finished: 0, rolled_back: 0, unresolved: 0 }];
     const migrationState = migrations[0] || { total: 0, finished: 0, rolled_back: 0, unresolved: 0 };
+    const coreTables = await client.$queryRaw`
+      SELECT table_name
+      FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name IN ('User', 'Workspace')
+    `;
+    const existingCoreTables = new Set(coreTables.map((item) => item.table_name));
+    const missingCoreTables = ['User', 'Workspace'].filter((table) => !existingCoreTables.has(table));
+
     return {
       provider: 'postgresql',
       configured: true,
@@ -56,6 +65,10 @@ export async function checkDatabase() {
         rolledBack: Number(migrationState.rolled_back || 0),
         unresolved: Number(migrationState.unresolved || 0),
         ok: Number(migrationState.unresolved || 0) === 0
+      },
+      schema: {
+        ok: missingCoreTables.length === 0,
+        missingTables: missingCoreTables
       },
       message: 'Banco conectado.'
     };
