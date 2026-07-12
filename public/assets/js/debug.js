@@ -6,7 +6,7 @@ async function renderDiagnostic(status) {
     <article class="diagnostic-card">
       <div>
         <h3>Modo atual</h3>
-        <p>${status.mode || 'mock'}</p>
+        <p>${status.mode || 'real'}</p>
       </div>
       <div>
         <h3>Última URL chamada</h3>

@@ -11,7 +11,7 @@ export default {
   async publicSearch(query) {
     if (!process.env.ALIEXPRESS_APP_KEY || !process.env.ALIEXPRESS_APP_SECRET) {
       const error = new Error('Busca publica AliExpress/Affiliate depende de app aprovado.');
-      error.publicMessage = 'Busca publica bloqueada';
+      error.publicMessage = 'Fonte publica indisponivel';
       throw error;
     }
     return this.searchProducts(query);
@@ -73,3 +73,4 @@ export default {
     return { connected: true };
   }
 };
+

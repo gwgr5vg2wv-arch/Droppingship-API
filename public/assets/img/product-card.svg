@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="600" height="338" viewBox="0 0 600 338" role="img" aria-label="Produto mock">
-  <rect width="600" height="338" rx="18" fill="#0c141d"/>
-  <circle cx="300" cy="142" r="72" fill="#162230" stroke="#27d17f" stroke-width="8"/>
-  <path d="M244 232h112c26 0 48 20 52 46H192c4-26 26-46 52-46Z" fill="#27d17f" opacity=".84"/>
-  <rect x="70" y="270" width="460" height="18" rx="9" fill="#243244"/>
-  <rect x="140" y="302" width="320" height="12" rx="6" fill="#162230"/>
-</svg>

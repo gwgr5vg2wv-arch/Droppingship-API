@@ -1,19 +1,19 @@
-import { readDb, writeDb } from '../services/mockData.service.js';
-import { researchProducts } from '../services/productResearch.service.js';
+import { readDb, writeDb } from '../services/dataStore.service.js';
+import { searchProducts } from '../../src/services/search/productSearch.service.js';
 
 export async function scanProducts(req, res, next) {
   try {
     const db = await readDb();
-    const products = await researchProducts({
-      query: req.body.query,
-      source: req.body.source || 'mock',
-      marketplaceFeePercent: db.settings.defaultMarketplaceFeePercent
+    const response = await searchProducts(req.body.query, {
+      limit: req.body.limit || 20,
+      refresh: req.body.refresh === true
     });
 
-    db.products = products;
+    db.products = response.products;
     await writeDb(db);
-    res.json({ products });
+    res.json(response);
   } catch (error) {
+    if (error.status === 400) return res.status(400).json({ error: error.message });
     next(error);
   }
 }

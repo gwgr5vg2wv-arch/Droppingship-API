@@ -12,12 +12,12 @@ const clients = {
   tiktokShop
 };
 
-export function getMarketplaceClient(source = 'mock') {
+export function getMarketplaceClient(source = 'mercadoLivre') {
   return clients[source] || null;
 }
 
 export function simulationNotice() {
-  return 'Modo simulacao: integracao oficial ainda nao configurada.';
+  return 'Integracao oficial ainda nao configurada.';
 }
 
 export function getAllMarketplaceClients() {

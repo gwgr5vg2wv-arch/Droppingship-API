@@ -1,6 +1,6 @@
-import { getMarketplaceClient } from '../services/marketplace.service.js';
+﻿import { getMarketplaceClient } from '../services/marketplace.service.js';
 import { getIntegrationMode, marketplaces, sanitizeError } from '../services/integrationMode.service.js';
-import { readDb, writeDb } from '../services/mockData.service.js';
+import { readDb, writeDb } from '../services/dataStore.service.js';
 
 export async function listOrders(req, res, next) {
   try {
@@ -15,7 +15,6 @@ export async function syncOrders(req, res, next) {
   try {
     const db = await readDb();
     const mode = getIntegrationMode();
-    if (mode === 'mock') return res.json({ orders: db.orders, mode, fallbackUsed: false });
 
     const synced = [];
     const errors = [];
@@ -32,14 +31,14 @@ export async function syncOrders(req, res, next) {
       }
     }
 
-    if (mode === 'real' && errors.length === marketplaces.length) {
+    if (errors.length === marketplaces.length) {
       await writeDb(db);
       return res.status(400).json({ error: 'Nenhuma integracao conectada para sincronizar pedidos.', errors });
     }
 
     if (synced.length) db.orders = [...synced, ...db.orders];
     await writeDb(db);
-    res.json({ orders: db.orders, mode, fallbackUsed: mode === 'hybrid' && synced.length === 0, errors });
+    res.json({ orders: db.orders, mode, fallbackUsed: false, errors });
   } catch (error) {
     next(error);
   }
@@ -58,3 +57,4 @@ function normalizeOrder(order, marketplace) {
     createdAt: new Date().toISOString()
   };
 }
+

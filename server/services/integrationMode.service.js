@@ -9,15 +9,15 @@ export const marketplaceLabels = {
 };
 
 export function getIntegrationMode() {
-  return normalizeMode(process.env.INTEGRATION_MODE, 'mock');
+  return normalizeMode(process.env.INTEGRATION_MODE, 'real');
 }
 
 export function getTrendsMode() {
-  return normalizeMode(process.env.TRENDS_MODE, 'mock');
+  return normalizeMode(process.env.TRENDS_MODE, 'real');
 }
 
-export function normalizeMode(value, fallback = 'mock') {
-  return ['mock', 'hybrid', 'real'].includes(value) ? value : fallback;
+export function normalizeMode(value, fallback = 'real') {
+  return value === 'real' ? 'real' : fallback;
 }
 
 export function normalizeMarketplace(value) {
@@ -32,8 +32,8 @@ export function publicStatusFor(marketplace, integration = {}) {
   return {
     marketplace,
     label: marketplaceLabels[marketplace],
-    status: connected ? 'conectado' : (configured ? 'nao-conectado' : 'mock'),
-    publicSearch: publicSearchActive ? 'ativa' : 'fallback',
+    status: connected ? 'conectado' : 'nao-conectado',
+    publicSearch: publicSearchActive ? 'ativa' : 'nao-conectada',
     accountConnected: connected,
     publishing: connected ? 'liberada' : 'bloqueada',
     connected,

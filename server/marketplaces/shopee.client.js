@@ -18,7 +18,7 @@ function requireConfig() {
 export default {
   async publicSearch() {
     const error = new Error('Busca publica Shopee bloqueada ou sem endpoint oficial publico estavel.');
-    error.publicMessage = 'Busca publica bloqueada';
+    error.publicMessage = 'Fonte publica indisponivel';
     throw error;
   },
 
@@ -110,3 +110,4 @@ export default {
     return { connected: true, shopId: process.env.SHOPEE_SHOP_ID };
   }
 };
+

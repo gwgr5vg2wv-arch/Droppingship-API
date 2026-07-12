@@ -1,0 +1,212 @@
+// Prisma schema para desenvolvimento local com SQLite
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  admin
+  operator
+  viewer
+}
+
+enum AccountStatus {
+  active
+  pending
+  blocked
+}
+
+// Users and Authentication
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      UserRole @default(viewer)
+  status    AccountStatus @default(active)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workspaceMembers WorkspaceMember[]
+  sessions         Session[]
+  tokens           RefreshToken[]
+  auditLogs        AuditLog[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+// Workspaces
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  logo        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members       WorkspaceMember[]
+  products      Product[]
+  listings      Listing[]
+  orders        Order[]
+  integrations  Integration[]
+  auditLogs     AuditLog[]
+}
+
+model WorkspaceMember {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  role        UserRole @default(viewer)
+  joinedAt    DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+// Products and Listings
+model Product {
+  id          String   @id @default(cuid())
+  workspaceId String
+  externalId  String?
+  title       String
+  description String?
+  sku         String?
+  price       Float
+  cost        Float?
+  images      String? // JSON array
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  listings  Listing[]
+
+  @@unique([workspaceId, externalId])
+  @@index([workspaceId, status])
+}
+
+model Listing {
+  id          String   @id @default(cuid())
+  productId   String
+  workspaceId String
+  marketplace String
+  externalId  String?
+  url         String?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  workspace  Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([marketplace, externalId])
+  @@index([productId])
+  @@index([workspaceId])
+}
+
+// Orders
+model Order {
+  id          String   @id @default(cuid())
+  workspaceId String
+  externalId  String?
+  marketplace String
+  status      String   @default("pending")
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items     OrderItem[]
+
+  @@unique([marketplace, externalId])
+  @@index([workspaceId, status])
+}
+
+model OrderItem {
+  id         String  @id @default(cuid())
+  orderId    String
+  listingId  String?
+  title      String
+  quantity   Int
+  unitPrice  Float
+  sourceCost Float?
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listing Listing? @relation(fields: [listingId], references: [id])
+
+  @@index([orderId])
+}
+
+// Integrations
+model Integration {
+  id          String   @id @default(cuid())
+  workspaceId String
+  marketplace String
+  status      String   @default("disconnected")
+  accessToken String?
+  refreshToken String?
+  expiresAt   DateTime?
+  syncedAt    DateTime?
+  error       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, marketplace])
+  @@index([workspaceId])
+}
+
+// Audit Trail
+model AuditLog {
+  id          String   @id @default(cuid())
+  workspaceId String
+  userId      String
+  action      String
+  resource    String
+  resourceId  String?
+  changes     String? // JSON
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([createdAt])
+}
