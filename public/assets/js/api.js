@@ -1,10 +1,4 @@
-const isLocal =
-  location.hostname === 'localhost' ||
-  location.hostname === '127.0.0.1';
-
-const API_BASE = isLocal
-  ? 'http://localhost:3000/Droppingship/api'
-  : 'https://sstbet.onrender.com/Droppingship/api';
+const API_BASE = 'https://sstbet.onrender.com/Droppingship/api';
 
 window.API_BASE = API_BASE;
 const ACCESS_TOKEN_KEY = 'droppingship_access_token';
@@ -42,7 +36,7 @@ async function apiFetch(path, options = {}) {
     return response.json();
   } catch (error) {
     if (error instanceof TypeError) {
-      throw new Error('Não foi possível conectar à API do servidor.');
+      throw new Error('API do Render indisponivel. Verifique deploy, variaveis de ambiente e logs em sstbet.onrender.com.');
     }
     throw error;
   }
