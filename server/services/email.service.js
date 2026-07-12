@@ -1,17 +1,14 @@
 import { env } from '../config/env.js';
 
 export async function sendTransactionalEmail({ to, subject, text }) {
-  if (env.EMAIL_PROVIDER === 'none') {
-    if (env.NODE_ENV === 'production') {
-      const error = new Error('Provedor de email nao configurado.');
-      error.status = 503;
-      throw error;
-    }
-    console.warn(`[EMAIL:DEV] ${subject} para ${to}. Configure EMAIL_PROVIDER=smtp para envio real.`);
-    return { sent: false, provider: 'none', developmentOnly: true, text };
+  // Em desenvolvimento, apenas log
+  if (env.NODE_ENV !== 'production') {
+    console.log(`[EMAIL:DEV] ${subject} para ${to}`);
+    return { sent: true, provider: 'dev', developmentOnly: true };
   }
 
-  const error = new Error('Envio SMTP ainda nao configurado neste build.');
+  // Em produção, retornar erro se não configurado
+  const error = new Error('Provedor de email nao configurado.');
   error.status = 503;
   throw error;
 }

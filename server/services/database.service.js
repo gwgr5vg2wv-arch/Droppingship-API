@@ -18,7 +18,7 @@ export async function checkDatabase() {
 
   if (!client) {
     return {
-      provider: 'postgresql',
+      provider: 'sqlite',
       configured: false,
       connected: false,
       message: 'DATABASE_URL ausente.'
@@ -27,28 +27,15 @@ export async function checkDatabase() {
 
   try {
     await client.$queryRaw`SELECT 1`;
-    const migrations = await client.$queryRaw`
-      SELECT COUNT(*)::int AS total,
-             COUNT(*) FILTER (WHERE finished_at IS NOT NULL)::int AS finished,
-             COUNT(*) FILTER (WHERE rolled_back_at IS NOT NULL)::int AS rolled_back
-      FROM "_prisma_migrations"
-    `.catch(() => [{ total: 0, finished: 0, rolled_back: 0 }]);
-    const migrationState = migrations[0] || { total: 0, finished: 0, rolled_back: 0 };
     return {
-      provider: 'postgresql',
+      provider: 'sqlite',
       configured: true,
       connected: true,
-      migrations: {
-        total: Number(migrationState.total || 0),
-        finished: Number(migrationState.finished || 0),
-        rolledBack: Number(migrationState.rolled_back || 0),
-        ok: Number(migrationState.rolled_back || 0) === 0
-      },
       message: 'Banco conectado.'
     };
   } catch (error) {
     return {
-      provider: 'postgresql',
+      provider: 'sqlite',
       configured: true,
       connected: false,
       message: 'Falha ao conectar no banco.',
