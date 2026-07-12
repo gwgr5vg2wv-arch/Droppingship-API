@@ -30,10 +30,11 @@ export async function checkDatabase() {
     const migrations = await client.$queryRaw`
       SELECT COUNT(*)::int AS total,
              COUNT(*) FILTER (WHERE finished_at IS NOT NULL)::int AS finished,
-             COUNT(*) FILTER (WHERE rolled_back_at IS NOT NULL)::int AS rolled_back
+             COUNT(*) FILTER (WHERE rolled_back_at IS NOT NULL)::int AS rolled_back,
+             COUNT(*) FILTER (WHERE finished_at IS NULL AND rolled_back_at IS NULL)::int AS unresolved
       FROM "_prisma_migrations"
-    `.catch(() => [{ total: 0, finished: 0, rolled_back: 0 }]);
-    const migrationState = migrations[0] || { total: 0, finished: 0, rolled_back: 0 };
+    `.catch(() => [{ total: 0, finished: 0, rolled_back: 0, unresolved: 0 }]);
+    const migrationState = migrations[0] || { total: 0, finished: 0, rolled_back: 0, unresolved: 0 };
     return {
       provider: 'postgresql',
       configured: true,
@@ -42,7 +43,8 @@ export async function checkDatabase() {
         total: Number(migrationState.total || 0),
         finished: Number(migrationState.finished || 0),
         rolledBack: Number(migrationState.rolled_back || 0),
-        ok: Number(migrationState.rolled_back || 0) === 0
+        unresolved: Number(migrationState.unresolved || 0),
+        ok: Number(migrationState.unresolved || 0) === 0
       },
       message: 'Banco conectado.'
     };

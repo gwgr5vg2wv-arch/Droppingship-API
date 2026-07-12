@@ -12,7 +12,7 @@ export async function buildHealth({ ready = false } = {}) {
   const readyFailures = [
     ...unavailableModules,
     ...(database.connected ? [] : [{ name: 'DATABASE_CONNECTION', message: database.message }]),
-    ...(database.migrations && !database.migrations.ok ? [{ name: 'DATABASE_MIGRATIONS', message: 'Migrations com rollback detectado.' }] : [])
+    ...(database.migrations && !database.migrations.ok ? [{ name: 'DATABASE_MIGRATIONS', message: 'Migrations pendentes ou sem resolucao.' }] : [])
   ];
 
   return {
