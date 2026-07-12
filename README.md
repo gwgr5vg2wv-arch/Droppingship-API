@@ -70,7 +70,7 @@ Variaveis disponiveis no `.env.example`:
 ```env
 MERCADO_LIVRE_CLIENT_ID=
 MERCADO_LIVRE_CLIENT_SECRET=
-MERCADO_LIVRE_REDIRECT_URI=http://localhost:3000/Droppingship/api/integrations/oauth/mercadoLivre/callback
+MERCADO_LIVRE_REDIRECT_URI=https://sstbet.onrender.com/Droppingship/api/integrations/oauth/mercadoLivre/callback
 
 SHOPEE_PARTNER_ID=
 SHOPEE_PARTNER_KEY=
@@ -112,41 +112,6 @@ Compatibilidade:
 
 ```text
 http://localhost:3000/Droppingship/health
-```
-
-## Produção com PM2
-
-Instale dependências e suba a API Node:
-
-```bash
-npm install
-pm2 start ecosystem.config.cjs
-pm2 save
-```
-
-Backend de produção:
-
-```text
-https://sstbet.site.je/drop/Droppingship/api
-```
-
-Frontend de produção:
-
-```text
-https://sstbet.site.je/drop/Droppingship/public/bot.html
-```
-
-Teste as rotas:
-
-```text
-https://sstbet.site.je/drop/Droppingship/api/health
-https://sstbet.site.je/drop/Droppingship/api/integrations/status
-```
-
-As mesmas rotas continuam disponiveis localmente em:
-
-```text
-http://localhost:3000/Droppingship/api
 ```
 
 ## Abrir frontend pelo XAMPP

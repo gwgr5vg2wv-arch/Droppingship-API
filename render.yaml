@@ -1,0 +1,54 @@
+# Render Blueprint para deploy controlado da API Droppingship.
+# Configure DATABASE_URL e credenciais reais no painel do Render antes de publicar.
+
+services:
+  - type: web
+    name: droppingship-api
+    runtime: node
+    plan: free
+    branch: main
+    autoDeploy: false
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npm run db:migrate:deploy && npm start
+    healthCheckPath: /health/live
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_URL
+        value: https://sstbet.onrender.com
+      - key: FRONTEND_URL
+        value: https://sstbet.onrender.com
+      - key: DATABASE_URL
+        sync: false
+      - key: MERCADO_LIVRE_CLIENT_ID
+        sync: false
+      - key: MERCADO_LIVRE_CLIENT_SECRET
+        sync: false
+      - key: MERCADO_LIVRE_REDIRECT_URI
+        value: https://sstbet.onrender.com/Droppingship/api/integrations/oauth/mercadoLivre/callback
+      - key: ALIEXPRESS_APP_KEY
+        sync: false
+      - key: ALIEXPRESS_APP_SECRET
+        sync: false
+      - key: ALIEXPRESS_REDIRECT_URI
+        value: https://sstbet.onrender.com/Droppingship/api/integrations/oauth/aliexpress/callback
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: ENCRYPTION_KEY
+        generateValue: true
+      - key: COOKIE_NAME
+        value: ds_refresh
+      - key: MARKETPLACE_WRITE_ENABLED
+        value: "false"
+      - key: AI_PATCH_ENABLED
+        value: "false"
+      - key: AUTO_APPLY_PATCHES
+        value: "false"
+      - key: INTEGRATION_MODE
+        value: mock
+      - key: TRENDS_MODE
+        value: mock

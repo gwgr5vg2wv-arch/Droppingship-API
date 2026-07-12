@@ -7,7 +7,7 @@ const apiBase = 'https://open-api.tiktokglobalshop.com';
 export default {
   async publicSearch() {
     const error = new Error('Busca publica TikTok Shop bloqueada ou sem endpoint oficial publico estavel.');
-    error.publicMessage = 'Busca publica bloqueada';
+    error.publicMessage = 'Fonte publica indisponivel';
     throw error;
   },
 
@@ -72,3 +72,4 @@ export default {
     return { connected: true };
   }
 };
+

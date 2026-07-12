@@ -35,9 +35,13 @@ export async function getSystemCredentialsStatus(req, res, next) {
 
 export async function testMercadoLivre(req, res, next) {
   try {
-    await testMercadoLivreConnection();
-    res.json({ ok: true, message: 'Mercado Livre funcionando.' });
+    const result = await testMercadoLivreConnection();
+    res.json(result);
   } catch (error) {
-    res.status(502).json({ ok: false, error: error.message || 'Falha ao testar Mercado Livre.' });
+    const status = error?.response?.status;
+    const message = status === 403
+      ? 'Mercado Livre bloqueou a busca publica neste ambiente. Conecte OAuth/token para busca real autenticada.'
+      : error.message || 'Falha ao testar Mercado Livre.';
+    res.status(error.status || 502).json({ ok: false, error: message });
   }
 }

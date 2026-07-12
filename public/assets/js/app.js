@@ -4,27 +4,42 @@ const state = {
   publishQueue: [],
   orders: [],
   trends: [],
+  trendsSummary: null,
+  trendsFallback: null,
   integrations: [],
   settings: null
 };
+window.DroppingshipState = state;
 
 const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+let activeSearchController = null;
+let searchDebounce = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   setupTabs();
   setupForms();
   await refreshAll();
+  activateHashTab();
 });
 
 function setupTabs() {
   document.querySelectorAll('[data-tab]').forEach((button) => {
     button.addEventListener('click', () => {
-      document.querySelectorAll('[data-tab]').forEach((item) => item.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
-      document.querySelectorAll(`[data-tab="${button.dataset.tab}"]`).forEach((item) => item.classList.add('active'));
-      document.getElementById(button.dataset.tab)?.classList.add('active');
+      activateTab(button.dataset.tab);
     });
   });
+}
+
+function activateTab(tab) {
+  document.querySelectorAll('[data-tab]').forEach((item) => item.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.remove('active'));
+  document.querySelectorAll(`[data-tab="${tab}"]`).forEach((item) => item.classList.add('active'));
+  document.getElementById(tab)?.classList.add('active');
+}
+
+function activateHashTab() {
+  const tab = location.hash.replace('#', '');
+  if (tab && document.getElementById(tab)) activateTab(tab);
 }
 
 function setupForms() {
@@ -34,6 +49,17 @@ function setupForms() {
   });
 
   document.getElementById('real-search-button').addEventListener('click', searchRealProducts);
+  document.getElementById('query')?.addEventListener('input', () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      if (document.getElementById('source')?.value !== 'mock' && document.getElementById('query')?.value.trim().length >= 2) {
+        searchRealProducts();
+      }
+    }, 400);
+  });
+  document.getElementById('refresh-trends')?.addEventListener('click', loadTrends);
+  document.getElementById('trends-filters')?.addEventListener('input', renderTrends);
+  document.getElementById('trends-filters')?.addEventListener('change', renderTrends);
 
   document.getElementById('settings-form').addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -96,21 +122,37 @@ async function searchRealProducts() {
   const query = document.getElementById('query').value.trim();
   const selected = document.getElementById('source').value;
   const sources = selected === 'mock'
-    ? ['mercadoLivre', 'shopee', 'temu', 'tiktokShop', 'aliexpress']
+    ? activeMarketplaceSources()
     : [selected];
   const results = document.getElementById('product-results');
   results.innerHTML = '<div class="empty">Buscando produtos online sem OAuth...</div>';
 
   try {
-    const data = await window.DroppingshipApi.publicSearch({ query, sources });
-    state.products = data.results || data.products || [];
+    if (activeSearchController) activeSearchController.abort();
+    activeSearchController = new AbortController();
+    const data = await window.DroppingshipApi.publicSearch({ query, sources }, { signal: activeSearchController.signal });
+    state.products = data.products || [];
+    state.productsFallback = data.fallbackUsed ? data.fallbackReason || 'no_real_sources' : null;
     renderSourceStatus(data.sources || {});
     renderProducts();
-    toast('Busca publica concluida com ranking unico.');
+    if (!state.products.length) {
+      showError(results, data.message || 'Nenhum produto real retornado pelas fontes oficiais.');
+    } else {
+      toast('Busca concluida com produtos reais retornados pela fonte oficial.');
+    }
     await Promise.all([loadDashboard(), loadIntegrations()]);
   } catch (error) {
+    if (error.name === 'AbortError') return;
     showError(results, error.message);
   }
+}
+
+function activeMarketplaceSources() {
+  const allowedNow = ['mercadoLivre', 'aliexpress'];
+  const enabled = state.settings?.marketplaces
+    ? allowedNow.filter((marketplace) => state.settings.marketplaces[marketplace])
+    : [];
+  return enabled.length ? enabled : allowedNow;
 }
 
 async function loadDashboard() {
@@ -134,6 +176,7 @@ async function loadProducts() {
   try {
     const data = await window.DroppingshipApi.products();
     state.products = data.products || [];
+    state.productsFallback = hasFallbackProducts(state.products) ? 'auth_required' : null;
     state.savedProducts = data.savedProducts || [];
     state.publishQueue = data.publishQueue || [];
     renderProducts();
@@ -156,9 +199,14 @@ async function loadOrders() {
 
 async function loadTrends() {
   try {
+    document.getElementById('trends-list').innerHTML = skeletonList(4);
     const data = await window.DroppingshipApi.trends();
-    state.trends = data.categories || [];
-    document.getElementById('trends-list').innerHTML = state.trends.map(trendCategoryCard).join('');
+    state.trends = data.products || (data.categories || []).flatMap((group) => group.items || []);
+    state.trendsSummary = data.summary || null;
+    state.trendsFallback = data.fallbackUsed ? data.fallbackReason : null;
+    renderTrendsSummary();
+    renderTrendCategories(data.categories || []);
+    renderTrends();
   } catch (error) {
     showError(document.getElementById('trends-list'), error.message);
   }
@@ -203,8 +251,10 @@ async function loadSettings() {
     state.settings = settings;
     const profile = settings.profile || {};
     document.getElementById('openai-status').textContent = settings.openaiStatus.configured ? 'configurada' : 'nao configurada';
-    document.getElementById('header-name').textContent = profile.name || 'Admin';
-    document.getElementById('header-plan').textContent = profile.plan || 'Starter';
+    if (!window.DroppingshipApi?.getAccessToken?.()) {
+      document.getElementById('header-name').textContent = profile.name || 'Admin';
+      document.getElementById('header-plan').textContent = profile.plan || 'Starter';
+    }
     document.getElementById('header-avatar').src = localAsset(profile.avatar);
     document.getElementById('profile-avatar').src = localAsset(profile.avatar);
     document.getElementById('profile-title').textContent = profile.storeName || 'Minha Loja Dropshipping';
@@ -224,7 +274,8 @@ async function loadSettings() {
 }
 
 function renderProducts() {
-  document.getElementById('product-results').innerHTML = state.products.map(productCard).join('') || empty('Pesquise um produto para encontrar oportunidades.');
+  const notice = state.productsFallback || hasFallbackProducts(state.products) ? fallbackNotice() : '';
+  document.getElementById('product-results').innerHTML = notice + (state.products.map(productCard).join('') || empty('Pesquise um produto para encontrar oportunidades.'));
 }
 
 function renderSaved() {
@@ -239,43 +290,51 @@ function productCard(product, context = 'search') {
   const integration = getIntegration(product.source);
   const canPublish = Boolean(integration?.accountConnected || integration?.connected);
   const publishTitle = canPublish ? 'Publicar agora' : 'Conecte sua conta para publicar.';
+  const price = safeNumber(product.salePrice ?? product.suggestedPrice);
+  const description = product.description || product.generatedDescription || product.reason || '';
+  const sourceText = product.sourceLabel || sourceLabel(product.source);
+  const isFallback = product.isFallback || product.fallbackUsed || ['mock', 'hybrid', 'fallback'].includes(product.mode);
   return `
     <article class="product-card">
-      <img src="${product.image}" alt="${product.title}">
+      <div class="product-media">
+        <span class="image-skeleton"></span>
+        <img src="${resolveProductImage(product)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" alt="${escapeHtml(product.title)}" onerror="handleProductImageError(this)">
+        ${productGallery(product)}
+      </div>
       <div class="product-body">
         <div class="product-head">
           <div>
-            <span class="pill">${product.source}</span>
+            <span class="pill">${sourceText}</span>
+            ${isFallback ? badge('Dados estimados', 'fallback') : ''}
             ${badge(modeLabel(product), product.mode || product.source || 'mock')}
-            ${product.publicSearchMode ? badge(product.publicSearchMode === 'public' ? 'Fonte REAL publica' : 'Fonte fallback', product.publicSearchMode) : ''}
-            <h3>${product.title}</h3>
+            <h3>${escapeHtml(product.title)}</h3>
           </div>
-          <strong>${money.format(product.suggestedPrice || 0)}</strong>
+          <strong>${money.format(price)}</strong>
         </div>
-        <p>${product.generatedDescription}</p>
-        ${product.fallbackReason ? `<p class="danger-text">Fallback: ${product.fallbackReason}</p>` : ''}
+        <p class="product-description">${escapeHtml(description)}</p>
         <div class="stats-grid">
-          ${miniStat('Fornecedor', money.format(product.supplierPrice))}
-          ${miniStat('Frete', money.format(product.shippingCost))}
-          ${miniStat('Lucro', money.format(product.profit))}
+          ${miniStat('Fornecedor', money.format(safeNumber(product.supplierPrice)))}
+          ${miniStat('Frete', money.format(safeNumber(product.shippingPrice ?? product.shippingCost)))}
+          ${miniStat('Lucro', money.format(safeNumber(product.estimatedProfit ?? product.profit)))}
+          ${miniStat('ROI', `${safeNumber(product.roi)}%`)}
           ${miniStat('Score', product.score ?? '-')}
-          ${miniStat('Rating', product.rating)}
-          ${miniStat('Vendidos', product.sold)}
-          ${miniStat('Entrega', `${product.deliveryDays} dias`)}
+          ${miniStat('Rating', safeNumber(product.rating))}
+          ${miniStat('Vendidos', safeNumber(product.soldQuantity ?? product.sold))}
+          ${miniStat('Entrega', `${safeNumber(product.deliveryDays)} dias`)}
         </div>
         <div class="visual-stats">
-          ${badge(`ROI ${product.roi}%`, 'good')}
-          ${badge(riskLabel(product.riskLevel), product.riskLevel)}
           ${progress('Tendencia', product.trendScore)}
-          ${competitionBar(product.competitionLevel)}
+          ${competitionBar(product.competition ?? product.competitionLevel)}
+          ${badge(riskLabel(product.risk ?? product.riskLevel), product.risk ?? product.riskLevel)}
         </div>
         <div class="tags">${(product.tags || []).map((tag) => `<span>${tag}</span>`).join('')}</div>
         <div class="actions">
           ${context === 'search' ? `<button onclick="saveProduct('${product.id}')">Salvar</button>` : ''}
-          <button onclick="addToQueue('${product.id}', '${context}')">Preparar anuncio</button>
+          ${product.url || product.productUrl ? `<button class="secondary" onclick="openProductDetails('${product.id}', '${context}')">Ver produto</button>` : ''}
+          <button class="primary-action" onclick="addToQueue('${product.id}', '${context}')">Preparar anúncio</button>
           <button ${canPublish ? '' : 'disabled'} title="${publishTitle}" onclick="publishPreparedProduct('${product.id}', '${context}')">Publicar</button>
           ${canPublish ? '' : '<span class="blocked-note">Conecte sua conta para publicar.</span>'}
-          <button class="secondary" onclick="copyListing('${product.id}', '${context}')">Copiar anuncio</button>
+          <button class="secondary" onclick="copyListing('${product.id}', '${context}')">Copiar anúncio</button>
         </div>
       </div>
     </article>
@@ -302,34 +361,41 @@ function queueCard(product) {
   `;
 }
 
-function trendCategoryCard(group) {
-  return `
-    <article class="trend-category">
-      <h3>${group.category}</h3>
-      <div class="stack">
-        ${(group.items || []).map(trendItemCard).join('')}
-      </div>
-    </article>
-  `;
+function renderTrendsSummary() {
+  const summary = state.trendsSummary || {};
+  const cards = [
+    ['Produtos analisados', summary.analyzed ?? state.trends.length],
+    ['Oportunidades fortes', summary.strongOpportunities ?? 0],
+    ['ROI médio', `${summary.averageRoi ?? 0}%`],
+    ['Lucro estimado', money.format(summary.estimatedProfit ?? 0)],
+    ['Tendências em alta', summary.risingTrends ?? 0]
+  ];
+  document.getElementById('trends-summary').innerHTML = cards.map(([label, value]) => metricCard(label, value)).join('');
 }
 
-function trendItemCard(item) {
-  return `
-    <div class="trend-item">
-      <div>
-        ${badge(item.source || 'mock', item.source || 'mock')}
-        <h4>${item.title}</h4>
-        <p>${item.reason}</p>
-        <div class="tags">${(item.tags || []).map((tag) => `<span>${tag}</span>`).join('')}</div>
-      </div>
-      <div class="trend-metrics">
-        ${progress('Demanda', item.demandScore)}
-        ${progress('Tendencia', item.trendScore)}
-        ${competitionBar(item.competitionLevel)}
-        <strong>${money.format(item.estimatedProfit)} lucro est.</strong>
-      </div>
-    </div>
-  `;
+function renderTrendCategories(groups = []) {
+  const categories = [
+    ['electronics', 'Eletrônicos'],
+    ['home', 'Casa'],
+    ['beauty', 'Beleza'],
+    ['fashion', 'Moda'],
+    ['tools', 'Ferramentas'],
+    ['pet', 'Pet'],
+    ['sports', 'Esportes'],
+    ['generic', 'Outros']
+  ];
+  document.getElementById('trend-category-strip').innerHTML = categories.map(([key, label]) => {
+    const group = groups.find((item) => categoryKey(item.category) === key);
+    const img = group?.image || `/Droppingship/assets/images/products/${key}.png`;
+    return `<button type="button" class="category-chip" onclick="setTrendCategory('${key}')"><img src="${localAsset(img)}" alt="">${label}</button>`;
+  }).join('');
+}
+
+function renderTrends() {
+  const filters = trendFilters();
+  const ranked = sortTrendProducts(state.trends.filter((item) => trendMatches(item, filters)), filters.sort);
+  const notice = state.trendsFallback ? fallbackNotice() : '';
+  document.getElementById('trends-list').innerHTML = notice + (ranked.map((item) => productCard(item, 'trends')).join('') || empty('Nenhuma tendência encontrada com esses filtros.'));
 }
 
 function integrationCard(item) {
@@ -371,7 +437,7 @@ window.saveProduct = async (id) => {
 };
 
 window.addToQueue = async (id, context) => {
-  const collections = context === 'saved' ? state.savedProducts : state.products;
+  const collections = collectionFor(context);
   const product = collections.find((item) => item.id === id);
   await window.DroppingshipApi.addToQueue(product);
   toast('Produto adicionado a fila.');
@@ -397,7 +463,7 @@ window.publishQueuedProduct = async (id) => {
 };
 
 window.publishPreparedProduct = async (id, context) => {
-  const collections = context === 'saved' ? state.savedProducts : state.products;
+  const collections = collectionFor(context);
   const product = collections.find((item) => item.id === id);
   const marketplace = product.marketplace || product.source || 'mercadoLivre';
   const integration = getIntegration(marketplace);
@@ -432,10 +498,51 @@ window.syncOrders = async () => {
 };
 
 window.copyListing = async (id, context) => {
-  const collections = context === 'saved' ? state.savedProducts : state.products;
+  const collections = collectionFor(context);
   const product = collections.find((item) => item.id === id);
   await navigator.clipboard.writeText(`${product.generatedTitle}\n\n${product.generatedDescription}\n\nTags: ${(product.tags || []).join(', ')}`);
   toast('Anuncio copiado.');
+};
+
+window.openProductDetails = (id, context) => {
+  const product = collectionFor(context).find((item) => item.id === id);
+  if (!product) return;
+  const url = product.url || product.productUrl || '';
+  const modal = document.getElementById('product-detail-modal') || createProductDetailModal();
+  modal.innerHTML = `
+    <div class="modal-panel">
+      <button class="modal-close" onclick="closeProductDetails()">Fechar</button>
+      <div class="detail-gallery">
+        ${(product.images && product.images.length ? product.images : [product.image]).slice(0, 4).map((image) => `<img src="${localAsset(image)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="handleProductImageError(this)" alt="">`).join('')}
+      </div>
+      <div class="detail-content">
+        ${badge(product.sourceLabel || sourceLabel(product.source), product.source)}
+        <h2>${escapeHtml(product.title)}</h2>
+        <p>${escapeHtml(product.description || product.generatedDescription || '')}</p>
+        <div class="stats-grid">
+          ${miniStat('Custo', money.format(safeNumber(product.supplierPrice)))}
+          ${miniStat('Frete', money.format(safeNumber(product.shippingPrice ?? product.shippingCost)))}
+          ${miniStat('Total', money.format(safeNumber(product.totalCost)))}
+          ${miniStat('Sugerido', money.format(safeNumber(product.suggestedPrice ?? product.salePrice)))}
+          ${miniStat('Lucro', money.format(safeNumber(product.estimatedProfit ?? product.profit)))}
+          ${miniStat('ROI', `${safeNumber(product.roi)}%`)}
+          ${miniStat('Vendidos', safeNumber(product.soldCount ?? product.soldQuantity ?? product.sold))}
+          ${miniStat('Entrega', `${safeNumber(product.deliveryDays)} dias`)}
+        </div>
+        <div class="tags">${(product.tags || []).map((tag) => `<span>${escapeHtml(tag)}</span>`).join('')}</div>
+        <div class="actions">
+          ${url ? `<a class="button-link secondary" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer">Abrir no fornecedor</a>` : ''}
+          <button onclick="addToQueue('${product.id}', '${context}')">Preparar anúncio</button>
+          <button class="secondary" onclick="copyListing('${product.id}', '${context}')">Copiar anúncio</button>
+        </div>
+      </div>
+    </div>
+  `;
+  modal.classList.add('show');
+};
+
+window.closeProductDetails = () => {
+  document.getElementById('product-detail-modal')?.classList.remove('show');
 };
 
 function metricCard(label, value) {
@@ -487,7 +594,7 @@ function progress(label, value) {
 }
 
 function competitionBar(level) {
-  const value = { baixa: 33, media: 66, alta: 100 }[level] || 33;
+  const value = { baixo: 33, baixa: 33, medio: 66, media: 66, alto: 100, alta: 100 }[level] || 33;
   return `
     <div class="progress-stat">
       <span>Concorrencia</span>
@@ -529,12 +636,152 @@ function renderSourceStatus(sources) {
   container.innerHTML = Object.entries(sources).map(([source, info]) => `
     <article class="source-status">
       ${badge(source, info.mode)}
-      <strong>${info.ok ? 'Busca publica ativa' : 'Fallback usado'}</strong>
-      <span>${info.reason || 'Fonte consultada sem OAuth'}</span>
+      <strong>${info.ok ? 'Busca publica ativa' : 'Fonte indisponivel agora'}</strong>
+      <span>${info.fallbackUsed ? sourceStatusMessage(info) : 'Fonte consultada sem OAuth.'}</span>
     </article>
   `).join('');
 }
 
+function sourceStatusMessage(info = {}) {
+  if (info.message) return escapeHtml(info.message);
+  return {
+    blocked_public_search: 'Busca publica bloqueada pelo provedor.',
+    auth_required: 'Credenciais ou aprovacao oficial necessarias.',
+    rate_limit: 'Limite temporario da fonte.',
+    no_real_sources: 'Sem resultados reais agora.'
+  }[info.fallbackReason] || 'Usando resultados demonstrativos.';
+}
+
 function localAsset(path) {
-  return (path || '/Droppingship/assets/img/avatar-default.svg').replace('/Droppingship/', '');
+  if (!path) return 'assets/images/products/generic.png';
+  if (/^https:\/\//.test(path)) return path;
+  if (/^http:\/\//.test(path)) return path.replace('http://', 'https://');
+  return path.replace('/Droppingship/', '');
+}
+
+function resolveProductImage(product = {}) {
+  return localAsset(product.image || product.thumbnail || categoryFallback(product));
+}
+
+function productGallery(product = {}) {
+  const images = (product.images || []).filter(Boolean).slice(0, 4);
+  if (images.length <= 1) return '';
+  return `<div class="product-thumbs">${images.map((image) => `<img src="${localAsset(image)}" loading="lazy" decoding="async" alt="">`).join('')}</div>`;
+}
+
+function categoryFallback(product = {}) {
+  return `/Droppingship/assets/images/products/${categoryKey(product.category || product.title)}.png`;
+}
+
+window.handleProductImageError = (img) => {
+  if (img.dataset.fallbackApplied) return;
+  img.dataset.fallbackApplied = 'true';
+  img.src = localAsset('/Droppingship/assets/images/product-placeholder.webp');
+};
+
+window.setTrendCategory = (category) => {
+  const input = document.getElementById('trend-category');
+  if (input) input.value = category;
+  renderTrends();
+};
+
+function trendFilters() {
+  return {
+    search: document.getElementById('trend-search')?.value.trim().toLowerCase() || '',
+    marketplace: document.getElementById('trend-marketplace')?.value || 'all',
+    category: document.getElementById('trend-category')?.value || 'all',
+    risk: document.getElementById('trend-risk')?.value || 'all',
+    competition: document.getElementById('trend-competition')?.value || 'all',
+    sort: document.getElementById('trend-sort')?.value || 'trend'
+  };
+}
+
+function trendMatches(product, filters) {
+  const haystack = `${product.title} ${product.category} ${product.source} ${(product.tags || []).join(' ')}`.toLowerCase();
+  if (filters.search && !haystack.includes(filters.search)) return false;
+  if (filters.marketplace !== 'all' && product.source !== filters.marketplace) return false;
+  if (filters.category !== 'all' && categoryKey(product.category || product.title) !== filters.category) return false;
+  if (filters.risk !== 'all' && (product.risk || product.riskLevel) !== filters.risk) return false;
+  if (filters.competition !== 'all' && (product.competition || product.competitionLevel) !== filters.competition) return false;
+  return true;
+}
+
+function sortTrendProducts(products, sort) {
+  const competitionRank = { baixo: 1, medio: 2, alto: 3 };
+  const riskRank = { baixo: 1, medio: 2, alto: 3 };
+  const sorted = [...products];
+  const value = (product, key) => safeNumber(product[key]);
+  return sorted.sort((a, b) => {
+    if (sort === 'roi') return value(b, 'roi') - value(a, 'roi');
+    if (sort === 'profit') return value(b, 'estimatedProfit') - value(a, 'estimatedProfit');
+    if (sort === 'sold') return value(b, 'soldQuantity') - value(a, 'soldQuantity');
+    if (sort === 'competition') return (competitionRank[a.competition || a.competitionLevel] || 2) - (competitionRank[b.competition || b.competitionLevel] || 2);
+    if (sort === 'risk') return (riskRank[a.risk || a.riskLevel] || 2) - (riskRank[b.risk || b.riskLevel] || 2);
+    if (sort === 'delivery') return value(a, 'deliveryDays') - value(b, 'deliveryDays');
+    return value(b, 'trendScore') - value(a, 'trendScore');
+  });
+}
+
+function categoryKey(value = '') {
+  const text = String(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/electronics|fone|headset|camera|smart|relogio|carregador|eletr/.test(text)) return 'electronics';
+  if (/beauty|beleza|escova|secador|maquiagem/.test(text)) return 'beauty';
+  if (/home|casa|cozinha|luminaria|organizador/.test(text)) return 'home';
+  if (/tools|ferramenta|tool|chave|furadeira/.test(text)) return 'tools';
+  if (/fashion|moda|bolsa|roupa|calcado/.test(text)) return 'fashion';
+  if (/pet|cachorro|gato/.test(text)) return 'pet';
+  if (/esporte|fitness|sports|garrafa|squeeze/.test(text)) return 'sports';
+  return 'generic';
+}
+
+function fallbackNotice() {
+  return '<div class="fallback-notice"><span>i</span>Resultados demonstrativos - conecte sua conta para consultar dados ao vivo.</div>';
+}
+
+function hasFallbackProducts(products = []) {
+  return products.some((product) => product.isFallback || product.fallbackUsed || product.fallbackReason);
+}
+
+function sourceLabel(source) {
+  return {
+    mercadoLivre: 'Mercado Livre',
+    shopee: 'Shopee',
+    aliexpress: 'AliExpress',
+    temu: 'Temu',
+    tiktokShop: 'TikTok Shop',
+    mock: 'Demonstracao',
+    hybrid: 'Dados estimados'
+  }[source] || source || 'Demonstracao';
+}
+
+function collectionFor(context) {
+  if (context === 'saved') return state.savedProducts;
+  if (context === 'trends') return state.trends;
+  return state.products;
+}
+
+function createProductDetailModal() {
+  const modal = document.createElement('div');
+  modal.id = 'product-detail-modal';
+  modal.className = 'product-modal';
+  document.body.appendChild(modal);
+  return modal;
+}
+
+function safeNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.round((number + Number.EPSILON) * 100) / 100 : 0;
+}
+
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function skeletonList(count = 3) {
+  return Array.from({ length: count }, () => '<article class="product-card skeleton-card"><span></span><div><i></i><i></i><i></i></div></article>').join('');
 }

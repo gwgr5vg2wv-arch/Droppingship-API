@@ -11,15 +11,22 @@ export default {
   async publicSearch(query) {
     if (!process.env.ALIEXPRESS_APP_KEY || !process.env.ALIEXPRESS_APP_SECRET) {
       const error = new Error('Busca publica AliExpress/Affiliate depende de app aprovado.');
-      error.publicMessage = 'Busca publica bloqueada';
+      error.publicMessage = 'Fonte publica indisponivel';
       throw error;
     }
     return this.searchProducts(query);
   },
 
-  getAuthUrl() {
+  getAuthUrl({ state } = {}) {
     requireConfig();
-    return 'https://api-sg.aliexpress.com/oauth/authorize';
+    const redirectUri = process.env.ALIEXPRESS_REDIRECT_URI || 'http://localhost:3000/Droppingship/api/integrations/oauth/aliexpress/callback';
+    const params = new URLSearchParams({
+      response_type: 'code',
+      client_id: process.env.ALIEXPRESS_APP_KEY,
+      redirect_uri: redirectUri
+    });
+    if (state) params.set('state', state);
+    return `https://api-sg.aliexpress.com/oauth/authorize?${params.toString()}`;
   },
 
   async exchangeCodeForToken(code) {
@@ -73,3 +80,4 @@ export default {
     return { connected: true };
   }
 };
+

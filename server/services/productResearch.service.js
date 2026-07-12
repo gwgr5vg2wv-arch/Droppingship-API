@@ -1,6 +1,7 @@
 import { generateListing } from './ai.service.js';
 import { calculateMargin, round } from './margin.service.js';
 import { makeId } from './mockData.service.js';
+import { categoryImage, normalizeProduct } from './productNormalization.service.js';
 
 const catalogs = {
   fone: ['Fone Bluetooth Pro Bass', 'Earbuds Sem Fio Touch', 'Headset Gamer Bluetooth', 'Fone Esportivo Resistente'],
@@ -9,13 +10,6 @@ const catalogs = {
   pet: ['Bebedouro Automatico Pet', 'Escova Removedora de Pelos', 'Cama Pet Dobrável', 'Brinquedo Interativo Pet'],
   casa: ['Organizador Multiuso Dobrável', 'Luminaria LED Sensor', 'Mini Aspirador Portatil', 'Suporte Ajustavel Cozinha']
 };
-
-const images = [
-  '/Droppingship/assets/img/product-card.svg',
-  '/Droppingship/assets/img/app-preview.svg',
-  '/Droppingship/assets/img/empty-state.svg',
-  '/Droppingship/assets/img/ai-bot.svg'
-];
 
 export async function researchProducts({ query = 'produto', source = 'mock', marketplaceFeePercent = 14 }) {
   const normalized = normalize(query);
@@ -44,20 +38,31 @@ export async function researchProducts({ query = 'produto', source = 'mock', mar
       trendScore: Math.min(98, 68 + index * 4 + normalized.length),
       competitionLevel: ['baixa', 'media', 'alta'][index % 3],
       riskLevel: ['baixo', 'medio', 'alto'][(index + 1) % 3],
-      image: images[index % images.length],
+      image: categoryImage(categoryForTitle(title, query)),
       recommendation: margin.roi >= 45 && margin.profit >= 25 ? 'Boa oportunidade para teste' : 'Validar concorrencia antes de publicar'
     };
     const listing = await generateListing(product);
-    products.push({
+    products.push(normalizeProduct({
       ...product,
       generatedTitle: listing.title,
       generatedDescription: listing.description,
       tags: listing.tags,
-      bullets: listing.bullets
-    });
+      bullets: listing.bullets,
+      isFallback: source !== 'real',
+      sourceLabel: source === 'mock' ? 'Demonstracao' : 'Dados estimados'
+    }, source));
   }
 
   return products;
+}
+
+function categoryForTitle(title, query) {
+  const value = `${title} ${query}`.toLowerCase();
+  if (/fone|headset|earbuds|smart|relogio/.test(value)) return 'electronics';
+  if (/garrafa|squeeze|fitness/.test(value)) return 'sports';
+  if (/pet/.test(value)) return 'pet';
+  if (/casa|cozinha|organizador|luminaria|aspirador|suporte/.test(value)) return 'home';
+  return 'generic';
 }
 
 function normalize(value) {

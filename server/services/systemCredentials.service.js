@@ -97,11 +97,31 @@ export async function saveSystemCredentials(values = {}) {
 }
 
 export async function testMercadoLivreConnection() {
+  const status = await getSetupStatus();
+  const ml = status.mercadoLivre || {};
+  const db = await readDb();
+  const token = db.integrations?.mercadoLivre?.accessToken || process.env.MERCADO_LIVRE_ACCESS_TOKEN || '';
+  if (!ml.configured) {
+    const error = new Error('Credenciais Mercado Livre incompletas. Configure Client ID, Secret e Redirect URI.');
+    error.status = 400;
+    throw error;
+  }
+
+  if (!token) {
+    return {
+      ok: true,
+      configured: true,
+      connected: false,
+      message: 'Credenciais configuradas. Agora clique em Conectar Mercado Livre para gerar token OAuth e liberar busca real autenticada.'
+    };
+  }
+
   const response = await axios.get('https://api.mercadolibre.com/sites/MLB/search', {
     params: { q: 'teste', limit: 1 },
+    headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' },
     timeout: 10000
   });
-  return response.data;
+  return { ok: true, configured: true, connected: true, message: 'Mercado Livre respondeu com token OAuth.', raw: response.data };
 }
 
 export async function getSetupStatus() {

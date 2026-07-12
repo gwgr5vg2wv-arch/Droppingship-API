@@ -11,7 +11,7 @@ const setupApiDefinitions = [
     fields: [
       ['MERCADO_LIVRE_CLIENT_ID', 'CLIENT_ID'],
       ['MERCADO_LIVRE_CLIENT_SECRET', 'CLIENT_SECRET', true],
-      ['MERCADO_LIVRE_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.site.je/drop/Droppingship/api/integrations/oauth/mercadoLivre/callback']
+      ['MERCADO_LIVRE_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.onrender.com/Droppingship/api/integrations/oauth/mercadoLivre/callback']
     ],
     steps: ['Criar app no painel', 'Colar Client ID', 'Colar Secret', 'Copiar Redirect URI', 'Salvar credenciais', 'Testar API publica']
   },
@@ -23,7 +23,7 @@ const setupApiDefinitions = [
       ['SHOPEE_PARTNER_ID', 'PARTNER_ID'],
       ['SHOPEE_PARTNER_KEY', 'PARTNER_KEY', true],
       ['SHOPEE_SHOP_ID', 'SHOP_ID'],
-      ['SHOPEE_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.site.je/drop/Droppingship/api/integrations/oauth/shopee/callback']
+      ['SHOPEE_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.onrender.com/Droppingship/api/integrations/oauth/shopee/callback']
     ],
     steps: ['Criar app no painel', 'Colar Partner ID', 'Colar Partner Key', 'Colar Shop ID', 'Salvar credenciais']
   },
@@ -34,7 +34,7 @@ const setupApiDefinitions = [
     fields: [
       ['TIKTOK_SHOP_APP_KEY', 'APP_KEY'],
       ['TIKTOK_SHOP_APP_SECRET', 'APP_SECRET', true],
-      ['TIKTOK_SHOP_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.site.je/drop/Droppingship/api/integrations/oauth/tiktokShop/callback']
+      ['TIKTOK_SHOP_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.onrender.com/Droppingship/api/integrations/oauth/tiktokShop/callback']
     ],
     steps: ['Criar app no painel', 'Colar App Key', 'Colar App Secret', 'Salvar credenciais']
   },
@@ -44,9 +44,10 @@ const setupApiDefinitions = [
     links: [['Abrir Open Platform', 'https://open.aliexpress.com']],
     fields: [
       ['ALIEXPRESS_APP_KEY', 'APP_KEY'],
-      ['ALIEXPRESS_APP_SECRET', 'APP_SECRET', true]
+      ['ALIEXPRESS_APP_SECRET', 'APP_SECRET', true],
+      ['ALIEXPRESS_REDIRECT_URI', 'REDIRECT_URI', false, 'https://sstbet.onrender.com/Droppingship/api/integrations/oauth/aliexpress/callback']
     ],
-    steps: ['Criar app no painel', 'Colar App Key', 'Colar App Secret', 'Salvar credenciais']
+    steps: ['Criar app no painel', 'Colar App Key', 'Colar App Secret', 'Copiar Redirect URI', 'Salvar credenciais']
   },
   {
     id: 'temu',
@@ -110,7 +111,7 @@ function setupApiCard(definition) {
         ${definition.fields.map((field) => setupField(definition.id, field)).join('')}
         <div class="setup-card-actions">
           <button type="submit">Salvar credenciais</button>
-          ${definition.id === 'mercadoLivre' ? '<button type="button" class="secondary test-button" onclick="testMercadoLivrePublicApi()">Testar API publica</button>' : ''}
+          ${definition.id === 'mercadoLivre' ? '<button type="button" class="secondary test-button" onclick="testMercadoLivrePublicApi()">Verificar credenciais</button>' : ''}
           ${definition.fields.some((field) => field[3]) ? `<button type="button" class="secondary" onclick="copyRedirectUri('${definition.id}')">Copiar Redirect URI</button>` : ''}
           <button type="button" class="secondary" onclick="markSetupReady('${definition.id}')">Marcar como pronto</button>
         </div>
@@ -174,8 +175,8 @@ window.copyRedirectUri = async (marketplace) => {
 
 window.testMercadoLivrePublicApi = async () => {
   try {
-    await window.DroppingshipApi.testMercadoLivrePublicApi();
-    toast('API publica do Mercado Livre respondeu.');
+    const result = await window.DroppingshipApi.testMercadoLivrePublicApi();
+    toast(result.message || 'Credenciais Mercado Livre verificadas.');
   } catch (error) {
     toast(error.message);
   }

@@ -1,7 +1,25 @@
 import { readDb } from '../services/mockData.service.js';
+import { createOrderRepository } from '../repositories/order.repository.js';
+import { getOptionalWorkspaceContext } from '../utils/requestAuth.util.js';
 
 export async function financeSummary(req, res, next) {
   try {
+    const context = await getOptionalWorkspaceContext(req);
+    if (context) {
+      const summary = await createOrderRepository(context.prisma).workspaceSummary(context.workspaceId);
+      return res.json({
+        revenueTotal: summary.revenueTotal,
+        costTotal: summary.costTotal,
+        profitTotal: summary.profitTotal,
+        averageRoi: summary.averageRoi,
+        shippingTotal: summary.shippingTotal,
+        simulatedFees: summary.simulatedFees,
+        stockTotal: summary.stockTotal,
+        listingValue: summary.listingValue,
+        storage: 'prisma'
+      });
+    }
+
     const db = await readDb();
     const orders = db.orders;
     const revenue = sum(orders, 'value');

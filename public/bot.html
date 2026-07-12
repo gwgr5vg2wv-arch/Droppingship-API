@@ -8,6 +8,55 @@
     <link rel="stylesheet" href="assets/css/credentials.css">
   </head>
   <body>
+    <section id="auth-screen" class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-brand">
+          <span>DS</span>
+          <div>
+            <strong>Droppingship</strong>
+            <small>Login oficial</small>
+          </div>
+        </div>
+        <div class="auth-tabs">
+          <button type="button" class="active" data-auth-tab="login">Entrar</button>
+          <button type="button" data-auth-tab="register">Criar conta</button>
+          <button type="button" data-auth-tab="recover">Recuperar</button>
+        </div>
+        <div id="auth-message" class="auth-message" aria-live="polite"></div>
+
+        <form id="login-form" class="auth-panel active" data-auth-panel="login">
+          <label>Email <input name="email" type="email" autocomplete="email" required></label>
+          <label>Senha <input name="password" type="password" autocomplete="current-password" required></label>
+          <button>Entrar</button>
+        </form>
+
+        <form id="register-form" class="auth-panel" data-auth-panel="register">
+          <label>Nome <input name="name" type="text" autocomplete="name" required minlength="2"></label>
+          <label>Email <input name="email" type="email" autocomplete="email" required></label>
+          <label>Senha <input name="password" type="password" autocomplete="new-password" required minlength="10"></label>
+          <label>Workspace <input name="workspaceName" type="text" placeholder="Minha operacao" minlength="2"></label>
+          <small>A senha precisa ter pelo menos 10 caracteres, letra maiuscula, minuscula e numero.</small>
+          <button>Criar conta</button>
+        </form>
+
+        <div class="auth-panel" data-auth-panel="recover">
+          <form id="forgot-form">
+            <label>Email <input name="email" type="email" autocomplete="email" required></label>
+            <button>Gerar token de recuperacao</button>
+          </form>
+          <form id="reset-form">
+            <label>Token <input name="token" type="text"></label>
+            <label>Nova senha <input name="password" type="password" autocomplete="new-password"></label>
+            <button type="submit" class="secondary">Redefinir senha</button>
+          </form>
+          <form id="verify-form">
+            <label>Token de email <input name="token" type="text"></label>
+            <button type="submit" class="secondary">Verificar email</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
     <div class="shell">
       <aside class="sidebar">
         <div class="brand">
@@ -26,6 +75,10 @@
           <button data-tab="orders">Pedidos</button>
           <button data-tab="finance">Financeiro</button>
           <button data-tab="integrations">Integrações</button>
+          <button data-tab="onboarding">Onboarding</button>
+          <button data-tab="workspaces">Workspaces</button>
+          <button data-tab="team">Equipe</button>
+          <button data-tab="sessions">Sessoes</button>
           <button data-tab="setup-apis">Setup APIs</button>
           <button data-tab="settings">Configuracoes</button>
         </nav>
@@ -69,11 +122,60 @@
         </section>
 
         <section id="trends" class="tab-panel">
-          <div class="section-head">
-            <h2>Tendências</h2>
-            <p>Mais procurados, virais e oportunidades simuladas para começar rápido.</p>
+          <div class="section-head trends-head">
+            <div>
+              <h2>Tendências de produtos</h2>
+              <p>Oportunidades compactas com imagem, margem, risco e concorrência para priorizar o que testar.</p>
+            </div>
+            <button type="button" id="refresh-trends">Atualizar</button>
           </div>
-          <div id="trends-list" class="trend-grid"></div>
+          <form id="trends-filters" class="trends-toolbar">
+            <input id="trend-search" name="trendSearch" placeholder="Buscar produto ou categoria">
+            <select id="trend-marketplace" name="trendMarketplace">
+              <option value="all">Todos marketplaces</option>
+              <option value="mock">Demonstração</option>
+              <option value="mercadoLivre">Mercado Livre</option>
+              <option value="shopee">Shopee</option>
+              <option value="aliexpress">AliExpress</option>
+              <option value="temu">Temu</option>
+              <option value="tiktokShop">TikTok Shop</option>
+            </select>
+            <select id="trend-category" name="trendCategory">
+              <option value="all">Todas categorias</option>
+              <option value="electronics">Eletrônicos</option>
+              <option value="home">Casa</option>
+              <option value="beauty">Beleza</option>
+              <option value="fashion">Moda</option>
+              <option value="tools">Ferramentas</option>
+              <option value="pet">Pet</option>
+              <option value="sports">Esportes</option>
+              <option value="generic">Outros</option>
+            </select>
+            <select id="trend-risk" name="trendRisk">
+              <option value="all">Todos riscos</option>
+              <option value="baixo">Baixo risco</option>
+              <option value="medio">Risco médio</option>
+              <option value="alto">Alto risco</option>
+            </select>
+            <select id="trend-competition" name="trendCompetition">
+              <option value="all">Toda concorrência</option>
+              <option value="baixo">Baixa</option>
+              <option value="medio">Média</option>
+              <option value="alto">Alta</option>
+            </select>
+            <select id="trend-sort" name="trendSort">
+              <option value="trend">Maior tendência</option>
+              <option value="roi">Maior ROI</option>
+              <option value="profit">Maior lucro</option>
+              <option value="sold">Mais vendidos</option>
+              <option value="competition">Menor concorrência</option>
+              <option value="risk">Menor risco</option>
+              <option value="delivery">Entrega mais rápida</option>
+            </select>
+          </form>
+          <div id="trends-summary" class="metrics-grid compact-metrics"></div>
+          <div id="trend-category-strip" class="category-strip"></div>
+          <div id="trends-list" class="product-grid trends-products"></div>
         </section>
 
         <section id="search" class="tab-panel">
@@ -86,10 +188,7 @@
             <select id="source" name="source">
               <option value="mock">mock</option>
               <option value="mercadoLivre">mercadoLivre</option>
-              <option value="shopee">shopee</option>
               <option value="aliexpress">aliexpress</option>
-              <option value="temu">temu</option>
-              <option value="tiktokShop">tiktokShop</option>
             </select>
             <button>Pesquisar</button>
             <button type="button" class="secondary" id="real-search-button">Buscar online público</button>
@@ -137,6 +236,59 @@
             <p>Conecte contas oficiais por OAuth. Sem credenciais, tudo continua em modo mock.</p>
           </div>
           <div id="integrations-list" class="integration-grid"></div>
+        </section>
+
+        <section id="onboarding" class="tab-panel">
+          <div class="section-head">
+            <h2>Onboarding</h2>
+            <p>Conta, workspace e proximos passos da operacao oficial.</p>
+          </div>
+          <div id="onboarding-cards" class="metrics-grid"></div>
+          <form id="onboarding-form" class="settings-form compact-form">
+            <label>Nome do workspace <input name="workspaceName" type="text" minlength="2"></label>
+            <button>Atualizar workspace</button>
+          </form>
+        </section>
+
+        <section id="workspaces" class="tab-panel">
+          <div class="section-head">
+            <h2>Workspaces</h2>
+            <p>Ambientes separados para lojas, equipes e operacoes.</p>
+          </div>
+          <form id="workspace-form" class="search-bar workspace-bar">
+            <input name="name" type="text" placeholder="Novo workspace" minlength="2" required>
+            <button>Criar workspace</button>
+          </form>
+          <div id="workspace-list" class="stack"></div>
+        </section>
+
+        <section id="team" class="tab-panel">
+          <div class="section-head">
+            <h2>Equipe</h2>
+            <p>Convites e permissoes por workspace.</p>
+          </div>
+          <form id="invite-form" class="search-bar team-bar">
+            <input name="email" type="email" placeholder="email@exemplo.com" required>
+            <select name="role">
+              <option value="viewer">viewer</option>
+              <option value="operator">operator</option>
+              <option value="admin">admin</option>
+            </select>
+            <button>Convidar</button>
+          </form>
+          <div id="team-list" class="stack"></div>
+        </section>
+
+        <section id="sessions" class="tab-panel">
+          <div class="section-head">
+            <h2>Sessoes</h2>
+            <p>Controle de dispositivos conectados.</p>
+          </div>
+          <div class="session-actions">
+            <button type="button" id="logout-button" class="secondary">Sair desta sessao</button>
+            <button type="button" id="logout-all-button" class="secondary">Sair de todas</button>
+          </div>
+          <div id="session-list" class="stack"></div>
         </section>
 
         <section id="setup-apis" class="tab-panel">
@@ -219,6 +371,7 @@
 
     <div id="toast" class="toast"></div>
     <script src="assets/js/api.js"></script>
+    <script src="assets/js/auth.js"></script>
     <script src="assets/js/dashboard.js"></script>
     <script src="assets/js/products.js"></script>
     <script src="assets/js/finance.js"></script>
