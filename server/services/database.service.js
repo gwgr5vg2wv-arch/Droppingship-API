@@ -27,13 +27,24 @@ export async function checkDatabase() {
 
   try {
     await client.$queryRaw`SELECT 1`;
-    const migrations = await client.$queryRaw`
-      SELECT COUNT(*)::int AS total,
-             COUNT(*) FILTER (WHERE finished_at IS NOT NULL)::int AS finished,
-             COUNT(*) FILTER (WHERE rolled_back_at IS NOT NULL)::int AS rolled_back,
-             COUNT(*) FILTER (WHERE finished_at IS NULL AND rolled_back_at IS NULL)::int AS unresolved
-      FROM "_prisma_migrations"
-    `.catch(() => [{ total: 0, finished: 0, rolled_back: 0, unresolved: 0 }]);
+    const migrationTable = await client.$queryRaw`
+      SELECT EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = '_prisma_migrations'
+      ) AS exists
+    `;
+    const hasMigrationTable = Boolean(migrationTable[0]?.exists);
+    const migrations = hasMigrationTable
+      ? await client.$queryRaw`
+          SELECT COUNT(*)::int AS total,
+                 COUNT(*) FILTER (WHERE finished_at IS NOT NULL)::int AS finished,
+                 COUNT(*) FILTER (WHERE rolled_back_at IS NOT NULL)::int AS rolled_back,
+                 COUNT(*) FILTER (WHERE finished_at IS NULL AND rolled_back_at IS NULL)::int AS unresolved
+          FROM "_prisma_migrations"
+        `
+      : [{ total: 0, finished: 0, rolled_back: 0, unresolved: 0 }];
     const migrationState = migrations[0] || { total: 0, finished: 0, rolled_back: 0, unresolved: 0 };
     return {
       provider: 'postgresql',
