@@ -486,8 +486,8 @@ window.connectMarketplace = async (marketplace) => {
       window.open(productionUrl, '_blank', 'noopener,noreferrer');
       return;
     }
-    window.open(data.authUrl, '_blank', 'noopener,noreferrer');
-    toast('URL de conexao aberta.');
+    toast('Redirecionando para autorizacao oficial.');
+    window.location.assign(data.authUrl);
   } catch (error) {
     toast(error.message);
   }
