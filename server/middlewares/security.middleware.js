@@ -30,10 +30,12 @@ export function applySecurity(app) {
 }
 
 export function corsOptions() {
-  const allowed = (env.FRONTEND_URL || '')
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
+  const allowed = [
+    ...splitOrigins(env.FRONTEND_URL),
+    ...splitOrigins(env.APP_URL),
+    ...splitOrigins(process.env.RENDER_EXTERNAL_URL),
+    'https://sstbet.onrender.com'
+  ];
 
   return {
     origin(origin, callback) {
@@ -46,4 +48,20 @@ export function corsOptions() {
     },
     credentials: true
   };
+}
+
+function splitOrigins(value = '') {
+  return value
+    .split(',')
+    .map((item) => originFromUrl(item.trim()))
+    .filter(Boolean);
+}
+
+function originFromUrl(value) {
+  if (!value) return '';
+  try {
+    return new URL(value).origin;
+  } catch {
+    return value.replace(/\/$/, '');
+  }
 }
