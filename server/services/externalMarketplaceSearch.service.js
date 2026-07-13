@@ -27,7 +27,10 @@ export async function searchMarketplaceExternally(query, marketplace, options = 
   ];
 
   for (const provider of providers) {
-    const products = await provider(query, config, options).catch(() => []);
+    const products = await provider(query, config, options).catch((error) => {
+      console.warn(`[EXTERNAL_SEARCH] provider=${provider.name} marketplace=${marketplace} error="${externalErrorMessage(error)}"`);
+      return [];
+    });
     if (products.length) return products;
   }
 
@@ -50,7 +53,9 @@ async function searchWithSerpApi(query, config, options = {}) {
   });
 
   const items = data.shopping_results || data.organic_results || [];
-  return items.map((item) => externalProduct(item, config, 'serpApi')).filter(hasRealProductFields);
+  const products = items.map((item) => externalProduct(item, config, 'serpApi')).filter(hasRealProductFields);
+  console.log(`[EXTERNAL_SEARCH] provider=serpApi site=${config.site} items=${items.length} products=${products.length}`);
+  return products;
 }
 
 async function searchWithGoogleCustomSearch(query, config, options = {}) {
@@ -69,7 +74,9 @@ async function searchWithGoogleCustomSearch(query, config, options = {}) {
     timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
   });
 
-  const products = (data.items || []).map((item) => externalProduct(item, config, 'googleCustomSearch')).filter(hasRealProductFields);
+  const items = data.items || [];
+  const products = items.map((item) => externalProduct(item, config, 'googleCustomSearch')).filter(hasRealProductFields);
+  console.log(`[EXTERNAL_SEARCH] provider=googleCustomSearch site=${config.site} items=${items.length} products=${products.length}`);
   if (products.length) return products;
 
   const imageResults = await searchWithGoogleImages(query, config, options);
@@ -92,7 +99,10 @@ async function searchWithGoogleImages(query, config, options = {}) {
     timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
   });
 
-  return (data.items || []).map((item) => externalProduct(item, config, 'googleImageSearch')).filter(hasRealProductFields);
+  const items = data.items || [];
+  const products = items.map((item) => externalProduct(item, config, 'googleImageSearch')).filter(hasRealProductFields);
+  console.log(`[EXTERNAL_SEARCH] provider=googleImageSearch site=${config.site} items=${items.length} products=${products.length}`);
+  return products;
 }
 
 function externalProduct(item, config, provider) {
@@ -157,4 +167,11 @@ function hash(value) {
     output |= 0;
   }
   return Math.abs(output).toString(36);
+}
+
+function externalErrorMessage(error) {
+  const status = error?.response?.status;
+  const providerMessage = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message;
+  if (status) return `${status} ${providerMessage || ''}`.trim();
+  return providerMessage || 'unknown';
 }
