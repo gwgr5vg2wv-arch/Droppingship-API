@@ -21,7 +21,8 @@ const SOURCE_LABELS = {
   hybrid: 'Dados estimados',
   fallback: 'Dados estimados',
   public: 'Busca publica',
-  real: 'Dados oficiais'
+  real: 'Dados oficiais',
+  external: 'Busca externa real'
 };
 
 export function normalizeProduct(product = {}, source = product.source || 'mock') {
@@ -72,7 +73,7 @@ export function normalizeProduct(product = {}, source = product.source || 'mock'
     risk,
     riskLevel: risk,
     tags: Array.isArray(product.tags) ? product.tags.filter(Boolean) : [],
-    productUrl: product.productUrl || product.permalink || '',
+    productUrl: product.productUrl || product.permalink || product.url || product.link || '',
     isFallback,
     fallbackUsed: isFallback,
     mode: isFallback && mode === 'fallback' ? 'hybrid' : mode,

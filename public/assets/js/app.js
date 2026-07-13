@@ -646,6 +646,7 @@ function riskLabel(level) {
 
 function modeLabel(product) {
   if (product.mode === 'real') return 'Real';
+  if (product.mode === 'external') return 'Real externo';
   if (product.mode === 'public') return 'Publico';
   if (product.mode === 'fallback') return 'Fallback';
   if (product.mode === 'hybrid' || product.fallbackUsed) return 'Hibrido';
@@ -678,6 +679,7 @@ function renderSourceStatus(sources) {
 }
 
 function sourceStatusTitle(info = {}) {
+  if (info.ok && info.mode === 'external') return 'Busca real externa ativa';
   if (info.ok && info.authenticated) return 'Busca autenticada ativa';
   if (info.ok) return 'Busca publica ativa';
   if (info.authenticated) return 'Busca oficial bloqueada';

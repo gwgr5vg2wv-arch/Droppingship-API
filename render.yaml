@@ -32,6 +32,12 @@ services:
         sync: false
       - key: ALIEXPRESS_REDIRECT_URI
         value: https://sstbet.onrender.com/Droppingship/api/integrations/oauth/aliexpress/callback
+      - key: SERPAPI_API_KEY
+        sync: false
+      - key: GOOGLE_SEARCH_API_KEY
+        sync: false
+      - key: GOOGLE_SEARCH_CX
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET

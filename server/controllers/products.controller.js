@@ -9,6 +9,7 @@ import { createIntegrationRepository } from '../repositories/integration.reposit
 import { getOptionalWorkspaceContext } from '../utils/requestAuth.util.js';
 import { decryptSecret } from '../utils/crypto.util.js';
 import { featureFlags } from '../config/env.js';
+import { hasExternalSearchProvider, searchMarketplaceExternally } from '../services/externalMarketplaceSearch.service.js';
 import { getProductById, searchProducts as aggregateSearchProducts } from '../../src/services/search/productSearch.service.js';
 
 export async function listProducts(req, res, next) {
@@ -207,9 +208,36 @@ export async function publicSearchProducts(req, res, next) {
         const fallbackReason = accessToken && [403, 429].includes(error?.status || error?.response?.status)
           ? 'official_search_blocked'
           : fallbackReasonFor(error);
+        const externalProducts = await searchMarketplaceExternally(query, source, { limit: 20 });
+        if (externalProducts.length) {
+          const normalized = await normalizePublicProducts(externalProducts, source, query, 'external');
+          sources[source] = {
+            ok: true,
+            mode: 'external',
+            source,
+            authenticated: Boolean(accessToken),
+            fallbackUsed: false,
+            fallbackReason: null,
+            message: 'Busca real via fonte externa configurada.'
+          };
+          results.push(...normalized);
+          continue;
+        }
+
         providerState[source] = { blocked: true, error };
         console.warn(`[MarketplaceProvider] ${source} indisponivel (${fallbackReason}).`);
-        sources[source] = { ok: false, mode: 'unavailable', source, authenticated: Boolean(accessToken), fallbackUsed: true, fallbackReason, message: sanitizeError(error) };
+        sources[source] = {
+          ok: false,
+          mode: 'unavailable',
+          source,
+          authenticated: Boolean(accessToken),
+          externalProviderConfigured: hasExternalSearchProvider(),
+          fallbackUsed: true,
+          fallbackReason,
+          message: hasExternalSearchProvider()
+            ? sanitizeError(error)
+            : 'Busca real externa nao configurada. Configure SERPAPI_API_KEY ou GOOGLE_SEARCH_API_KEY/GOOGLE_SEARCH_CX.'
+        };
         failedSources.push({ source, fallbackReason, message: sanitizeError(error) });
       }
     }
@@ -229,7 +257,7 @@ export async function publicSearchProducts(req, res, next) {
       source: fallbackEntry ? 'hybrid' : (requestedSources[0] || 'mock'),
       fallbackUsed: Boolean(fallbackEntry),
       fallbackReason: fallbackEntry?.fallbackReason || null,
-      message: ranked.length ? '' : 'Nenhuma fonte retornou produtos reais com foto para essa busca. Conecte OAuth ou revise credenciais/permissoes oficiais.',
+      message: ranked.length ? '' : 'Nenhuma fonte retornou produtos reais com foto para essa busca. Configure uma fonte real externa ou revise permissoes oficiais.',
       results: ranked,
       products: ranked,
       sources
@@ -481,7 +509,7 @@ async function normalizePublicProducts(products = [], marketplace, query, mode) 
       source: marketplace,
       mode,
       publicSearchMode: mode,
-      sourceStatus: mode === 'real' ? 'real' : 'public',
+      sourceStatus: ['real', 'external'].includes(mode) ? mode : 'public',
       supplierPrice,
       shippingCost,
       suggestedPrice: price,
@@ -503,11 +531,13 @@ async function normalizePublicProducts(products = [], marketplace, query, mode) 
         ...(Array.isArray(item.images) ? item.images : []),
         ...(Array.isArray(item.pictures) ? item.pictures.map((picture) => picture?.secure_url || picture?.url) : [])
       ].filter(Boolean),
-      productUrl: item.permalink,
+      productUrl: item.productUrl || item.permalink || item.url || item.link,
       generatedTitle: item.title || item.name || `${marketplaceLabels[marketplace]} ${query}`,
       generatedDescription: mode === 'real'
         ? 'Produto retornado por integracao oficial. Valide estoque, frete e regras antes de publicar.'
-        : 'Produto encontrado em busca publica. Prepare o anuncio e conecte a conta para publicar.',
+        : mode === 'external'
+          ? 'Produto real encontrado por fonte externa configurada. Valide estoque, frete e regras antes de publicar.'
+          : 'Produto encontrado em busca publica. Prepare o anuncio e conecte a conta para publicar.',
       tags: ['busca-publica', marketplace, mode],
       recommendation: 'Bom candidato para preparar anuncio antes de conectar OAuth.',
       isFallback: false

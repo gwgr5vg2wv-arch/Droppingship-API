@@ -29,6 +29,23 @@ INTEGRATION_MODE=mock
 TRENDS_MODE=mock
 ```
 
+## Busca real obrigatoria
+
+Para evitar resultados demonstrativos, configure pelo menos uma fonte externa real:
+
+```env
+SERPAPI_API_KEY=<chave SerpApi>
+```
+
+ou:
+
+```env
+GOOGLE_SEARCH_API_KEY=<chave Google Custom Search>
+GOOGLE_SEARCH_CX=<id do mecanismo de busca>
+```
+
+Essas fontes sao usadas quando Mercado Livre ou AliExpress bloqueiam a busca oficial/publica. O OAuth continua sendo usado para conta, tokens e publicacao futura.
+
 ## Depois de configurar
 
 1. Clique em **Manual Deploy / Deploy latest commit** no Render.
