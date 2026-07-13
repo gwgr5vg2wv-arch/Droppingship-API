@@ -59,7 +59,9 @@ async function searchWithGoogleCustomSearch(query, config, options = {}) {
     params: {
       key: process.env.GOOGLE_SEARCH_API_KEY,
       cx: process.env.GOOGLE_SEARCH_CX,
-      q: `${query} site:${config.site}`,
+      q: query,
+      siteSearch: config.site,
+      siteSearchFilter: 'i',
       num: Math.min(10, options.limit || 10),
       gl: 'br',
       hl: 'pt-BR'
@@ -67,12 +69,49 @@ async function searchWithGoogleCustomSearch(query, config, options = {}) {
     timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
   });
 
-  return (data.items || []).map((item) => externalProduct(item, config, 'googleCustomSearch')).filter(hasRealProductFields);
+  const products = (data.items || []).map((item) => externalProduct(item, config, 'googleCustomSearch')).filter(hasRealProductFields);
+  if (products.length) return products;
+
+  const imageResults = await searchWithGoogleImages(query, config, options);
+  return imageResults;
+}
+
+async function searchWithGoogleImages(query, config, options = {}) {
+  const { data } = await axios.get('https://www.googleapis.com/customsearch/v1', {
+    params: {
+      key: process.env.GOOGLE_SEARCH_API_KEY,
+      cx: process.env.GOOGLE_SEARCH_CX,
+      q: query,
+      siteSearch: config.site,
+      siteSearchFilter: 'i',
+      searchType: 'image',
+      num: Math.min(10, options.limit || 10),
+      gl: 'br',
+      hl: 'pt-BR'
+    },
+    timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
+  });
+
+  return (data.items || []).map((item) => externalProduct(item, config, 'googleImageSearch')).filter(hasRealProductFields);
 }
 
 function externalProduct(item, config, provider) {
-  const url = item.link || item.product_link || item.serpapi_product_api || '';
-  const image = item.thumbnail || item.image || item.pagemap?.cse_image?.[0]?.src || item.rich_snippet?.top?.detected_extensions?.thumbnail || '';
+  const metatag = item.pagemap?.metatags?.[0] || {};
+  const url = item.image?.contextLink ||
+    item.link ||
+    item.product_link ||
+    item.serpapi_product_api ||
+    metatag['og:url'] ||
+    '';
+  const image = item.thumbnail ||
+    item.image?.thumbnailLink ||
+    item.image?.contextLink && item.link ||
+    item.pagemap?.cse_thumbnail?.[0]?.src ||
+    item.pagemap?.cse_image?.[0]?.src ||
+    metatag['og:image'] ||
+    metatag['twitter:image'] ||
+    item.rich_snippet?.top?.detected_extensions?.thumbnail ||
+    '';
   const price = parsePrice(item.extracted_price || item.price || item.snippet);
   const title = item.title || item.name || '';
 

@@ -95,12 +95,34 @@ export default {
 };
 
 function normalizeTokenResponse(data = {}) {
-  const payload = data.result || data.data || data;
-  const accessToken = payload.access_token || payload.accessToken || payload.accessTokenValue;
+  const payload = data.result || data.data || data.access_token_result || data;
+  const accessToken = payload.access_token ||
+    payload.accessToken ||
+    payload.accessTokenValue ||
+    payload.access_token_value ||
+    payload.access_token_result?.access_token;
   if (!accessToken) {
-    const error = new Error(payload.error_message || payload.message || 'AliExpress nao retornou access_token.');
+    const providerCode = payload.error ||
+      payload.error_code ||
+      payload.code ||
+      data.error ||
+      data.error_code ||
+      data.code ||
+      'NO_ACCESS_TOKEN';
+    const providerMessage = payload.error_description ||
+      payload.error_message ||
+      payload.message ||
+      payload.msg ||
+      data.error_description ||
+      data.error_message ||
+      data.message ||
+      data.msg ||
+      'AliExpress nao retornou access_token.';
+    const error = new Error(`${providerCode}: ${providerMessage}`);
     error.status = 502;
-    error.responseData = data;
+    error.publicMessage = `AliExpress recusou o token OAuth (${providerCode}). ${providerMessage}`;
+    error.responseData = sanitizeTokenResponse(data);
+    console.warn('[ALIEXPRESS_OAUTH] token exchange sem access_token', error.responseData);
     throw error;
   }
 
@@ -113,5 +135,13 @@ function normalizeTokenResponse(data = {}) {
     user_nick: payload.user_nick || payload.userNick || payload.account || '',
     user_id: payload.user_id || payload.userId || payload.seller_id || payload.sellerId || ''
   };
+}
+
+function sanitizeTokenResponse(value) {
+  if (!value || typeof value !== 'object') return value;
+  if (Array.isArray(value)) return value.map(sanitizeTokenResponse);
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => (
+    /token|secret|password/i.test(key) ? [key, '[redacted]'] : [key, sanitizeTokenResponse(item)]
+  )));
 }
 
