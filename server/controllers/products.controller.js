@@ -188,9 +188,10 @@ export async function publicSearchProducts(req, res, next) {
 
     for (const source of requestedSources) {
       const client = getMarketplaceClient(source);
+      let accessToken = '';
       try {
         if (providerState[source]?.blocked) throw providerState[source].error;
-        const accessToken = await workspaceAccessToken(context, source);
+        accessToken = await workspaceAccessToken(context, source);
         const response = await client.publicSearch(query, { db, accessToken });
         const responseMode = response.mode === 'real' ? 'real' : 'public';
         const normalized = await normalizePublicProducts(response.products || [], source, query, responseMode);
@@ -200,13 +201,15 @@ export async function publicSearchProducts(req, res, next) {
           empty.status = 204;
           throw empty;
         }
-        sources[source] = { ok: true, mode: responseMode, source, fallbackUsed: false, fallbackReason: null };
+        sources[source] = { ok: true, mode: responseMode, source, authenticated: Boolean(accessToken), fallbackUsed: false, fallbackReason: null };
         results.push(...normalized);
       } catch (error) {
-        const fallbackReason = fallbackReasonFor(error);
+        const fallbackReason = accessToken && [403, 429].includes(error?.status || error?.response?.status)
+          ? 'official_search_blocked'
+          : fallbackReasonFor(error);
         providerState[source] = { blocked: true, error };
         console.warn(`[MarketplaceProvider] ${source} indisponivel (${fallbackReason}).`);
-        sources[source] = { ok: false, mode: 'unavailable', source, fallbackUsed: true, fallbackReason, message: sanitizeError(error) };
+        sources[source] = { ok: false, mode: 'unavailable', source, authenticated: Boolean(accessToken), fallbackUsed: true, fallbackReason, message: sanitizeError(error) };
         failedSources.push({ source, fallbackReason, message: sanitizeError(error) });
       }
     }

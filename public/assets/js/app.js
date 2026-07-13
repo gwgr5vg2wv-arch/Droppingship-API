@@ -671,15 +671,26 @@ function renderSourceStatus(sources) {
   container.innerHTML = Object.entries(sources).map(([source, info]) => `
     <article class="source-status">
       ${badge(source, info.mode)}
-      <strong>${info.ok ? 'Busca publica ativa' : 'Fonte indisponivel agora'}</strong>
-      <span>${info.fallbackUsed ? sourceStatusMessage(info) : 'Fonte consultada sem OAuth.'}</span>
+      <strong>${sourceStatusTitle(info)}</strong>
+      <span>${info.fallbackUsed ? sourceStatusMessage(info) : (info.authenticated ? 'Fonte consultada com OAuth.' : 'Fonte consultada sem OAuth.')}</span>
     </article>
   `).join('');
 }
 
+function sourceStatusTitle(info = {}) {
+  if (info.ok && info.authenticated) return 'Busca autenticada ativa';
+  if (info.ok) return 'Busca publica ativa';
+  if (info.authenticated) return 'Busca oficial bloqueada';
+  return 'Fonte indisponivel agora';
+}
+
 function sourceStatusMessage(info = {}) {
+  if (info.fallbackReason === 'official_search_blocked') {
+    return 'Conta conectada, mas o Mercado Livre bloqueou a consulta de catalogo nesse ambiente ou escopo.';
+  }
   if (info.message) return escapeHtml(info.message);
   return {
+    official_search_blocked: 'Conta conectada, mas busca oficial bloqueada pelo provedor.',
     blocked_public_search: 'Busca publica bloqueada pelo provedor.',
     auth_required: 'Credenciais ou aprovacao oficial necessarias.',
     rate_limit: 'Limite temporario da fonte.',
@@ -770,6 +781,9 @@ function categoryKey(value = '') {
 }
 
 function fallbackNotice() {
+  if (state.productsFallback === 'official_search_blocked') {
+    return '<div class="fallback-notice"><span>i</span>Conta conectada, mas a API oficial bloqueou a consulta de catalogo neste ambiente. Resultados demonstrativos exibidos por seguranca.</div>';
+  }
   return '<div class="fallback-notice"><span>i</span>Resultados demonstrativos - conecte sua conta para consultar dados ao vivo.</div>';
 }
 
