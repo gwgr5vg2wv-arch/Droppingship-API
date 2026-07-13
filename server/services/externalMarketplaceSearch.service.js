@@ -49,24 +49,51 @@ export async function searchMarketplaceExternallyDetailed(query, marketplace, op
 
 async function searchWithSerpApi(query, config, options = {}) {
   if (!process.env.SERPAPI_API_KEY) return [];
-  const { data } = await axios.get('https://serpapi.com/search.json', {
-    params: {
-      engine: 'google',
-      q: `${query} site:${config.site}`,
-      tbm: 'shop',
-      api_key: process.env.SERPAPI_API_KEY,
-      num: Math.min(20, options.limit || 20),
-      gl: 'br',
-      hl: 'pt-br'
+  const attempts = [
+    {
+      provider: 'serpApiGoogleShopping',
+      params: { engine: 'google', q: `${query} site:${config.site}`, tbm: 'shop' },
+      items: (data) => data.shopping_results || []
     },
-    timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
-  });
+    {
+      provider: 'serpApiGoogle',
+      params: { engine: 'google', q: `${query} site:${config.site}` },
+      items: (data) => data.organic_results || []
+    },
+    {
+      provider: 'serpApiGoogleImages',
+      params: { engine: 'google_images', q: `${query} site:${config.site}` },
+      items: (data) => data.images_results || []
+    }
+  ];
 
-  const items = data.shopping_results || data.organic_results || [];
-  const products = items.map((item) => externalProduct(item, config, 'serpApi')).filter(hasRealProductFields);
-  console.log(`[EXTERNAL_SEARCH] provider=serpApi site=${config.site} items=${items.length} products=${products.length}`);
-  products.diagnostic = { provider: 'serpApi', ok: products.length > 0, items: items.length, products: products.length };
-  return products;
+  const diagnostics = [];
+  for (const attempt of attempts) {
+    const { data } = await axios.get('https://serpapi.com/search.json', {
+      params: {
+        ...attempt.params,
+        api_key: process.env.SERPAPI_API_KEY,
+        num: Math.min(20, options.limit || 20),
+        gl: 'br',
+        hl: 'pt-br'
+      },
+      timeout: options.timeoutMs || Number(process.env.SEARCH_PROVIDER_TIMEOUT_MS || 8000)
+    });
+
+    const items = attempt.items(data);
+    const products = items.map((item) => externalProduct(item, config, attempt.provider)).filter(hasRealProductFields);
+    const diagnostic = { provider: attempt.provider, ok: products.length > 0, items: items.length, products: products.length };
+    diagnostics.push(diagnostic);
+    console.log(`[EXTERNAL_SEARCH] provider=${attempt.provider} site=${config.site} items=${items.length} products=${products.length}`);
+    if (products.length) {
+      products.diagnostic = { provider: 'serpApi', ok: true, attempts: diagnostics };
+      return products;
+    }
+  }
+
+  const empty = [];
+  empty.diagnostic = { provider: 'serpApi', ok: false, attempts: diagnostics };
+  return empty;
 }
 
 async function searchWithGoogleCustomSearch(query, config, options = {}) {
@@ -130,12 +157,16 @@ async function searchWithGoogleImages(query, config, options = {}) {
 function externalProduct(item, config, provider) {
   const metatag = item.pagemap?.metatags?.[0] || {};
   const url = item.image?.contextLink ||
+    item.source ||
+    item.original ||
     item.link ||
     item.product_link ||
     item.serpapi_product_api ||
     metatag['og:url'] ||
     '';
   const image = item.thumbnail ||
+    item.original ||
+    item.original_image ||
     item.image?.thumbnailLink ||
     item.image?.contextLink && item.link ||
     item.pagemap?.cse_thumbnail?.[0]?.src ||
