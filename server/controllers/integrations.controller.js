@@ -52,6 +52,9 @@ export async function oauthCallback(req, res, next) {
     if (marketplace === 'mercadoLivre') {
       return await mercadoLivreCallback(req, res, marketplace);
     }
+    if (marketplace === 'aliexpress') {
+      return await aliexpressCallback(req, res, marketplace);
+    }
 
     const client = getMarketplaceClient(marketplace);
     const token = await client.exchangeCodeForToken(req.query.code);
@@ -100,6 +103,34 @@ async function mercadoLivreCallback(req, res, marketplace) {
   });
 
   res.redirect(frontendRedirect(req, 'mercadoLivre', 'connected'));
+}
+
+async function aliexpressCallback(req, res, marketplace) {
+  const state = verifyOAuthState(req.query.state, marketplace);
+  const prisma = getPrisma();
+  if (!prisma) return res.status(503).json({ error: 'Banco PostgreSQL nao configurado.' });
+  ensureEncryptionKey();
+
+  const client = getMarketplaceClient(marketplace);
+  const token = await client.exchangeCodeForToken(req.query.code);
+  if (!token.access_token) return res.status(502).json({ error: 'AliExpress nao retornou access_token.' });
+
+  await createIntegrationRepository(prisma).upsertOAuthConnection(state.workspaceId, 'aliexpress', {
+    status: 'connected',
+    externalAccountId: token.user_id ? String(token.user_id) : '',
+    accountName: token.user_nick || token.account || 'AliExpress',
+    scopes: parseScopes(token.scope),
+    accessTokenEncrypted: encryptSecret(token.access_token),
+    refreshTokenEncrypted: encryptSecret(token.refresh_token || ''),
+    expiresAt: tokenExpiresAt(token),
+    metadata: {
+      userId: state.userId,
+      tokenType: token.token_type || token.tokenType || 'bearer',
+      connectedAt: new Date().toISOString()
+    }
+  });
+
+  res.redirect(frontendRedirect(req, 'aliexpress', 'connected'));
 }
 
 async function listAuthenticatedIntegrations(req) {
@@ -162,6 +193,15 @@ function verifyOAuthState(value, marketplace) {
 function parseScopes(scope = '') {
   if (Array.isArray(scope)) return scope;
   return String(scope).split(/\s+/).filter(Boolean);
+}
+
+function tokenExpiresAt(token = {}) {
+  if (token.expires_in) return new Date(Date.now() + Number(token.expires_in) * 1000);
+  if (token.expire_time) {
+    const value = Number(token.expire_time);
+    if (Number.isFinite(value)) return new Date(value > 10_000_000_000 ? value : value * 1000);
+  }
+  return null;
 }
 
 function bearerToken(req) {

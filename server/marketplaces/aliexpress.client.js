@@ -2,6 +2,7 @@ import axios from 'axios';
 import { missingConnectionError } from '../services/integrationMode.service.js';
 
 const apiBase = 'https://api-sg.aliexpress.com/sync';
+const authBase = 'https://api-sg.aliexpress.com';
 
 function requireConfig() {
   if (!process.env.ALIEXPRESS_APP_KEY || !process.env.ALIEXPRESS_APP_SECRET) throw missingConnectionError('aliexpress');
@@ -31,7 +32,15 @@ export default {
 
   async exchangeCodeForToken(code) {
     requireConfig();
-    return { code, notice: 'AliExpress OAuth preparado. Ajuste conforme app aprovado na Open Platform.' };
+    const { data } = await axios.post(`${authBase}/auth/token/create`, {
+      app_key: process.env.ALIEXPRESS_APP_KEY,
+      app_secret: process.env.ALIEXPRESS_APP_SECRET,
+      code
+    }, {
+      headers: { 'Content-Type': 'application/json' },
+      timeout: 10000
+    });
+    return normalizeTokenResponse(data);
   },
 
   async searchProducts(query) {
@@ -80,4 +89,25 @@ export default {
     return { connected: true };
   }
 };
+
+function normalizeTokenResponse(data = {}) {
+  const payload = data.result || data.data || data;
+  const accessToken = payload.access_token || payload.accessToken || payload.accessTokenValue;
+  if (!accessToken) {
+    const error = new Error(payload.error_message || payload.message || 'AliExpress nao retornou access_token.');
+    error.status = 502;
+    error.responseData = data;
+    throw error;
+  }
+
+  return {
+    ...payload,
+    access_token: accessToken,
+    refresh_token: payload.refresh_token || payload.refreshToken || '',
+    expires_in: payload.expires_in || payload.expiresIn || null,
+    expire_time: payload.expire_time || payload.expireTime || null,
+    user_nick: payload.user_nick || payload.userNick || payload.account || '',
+    user_id: payload.user_id || payload.userId || payload.seller_id || payload.sellerId || ''
+  };
+}
 
