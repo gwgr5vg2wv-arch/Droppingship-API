@@ -9,7 +9,7 @@ import { createIntegrationRepository } from '../repositories/integration.reposit
 import { getOptionalWorkspaceContext } from '../utils/requestAuth.util.js';
 import { decryptSecret } from '../utils/crypto.util.js';
 import { featureFlags } from '../config/env.js';
-import { hasExternalSearchProvider, searchMarketplaceExternally } from '../services/externalMarketplaceSearch.service.js';
+import { hasExternalSearchProvider, searchMarketplaceExternallyDetailed } from '../services/externalMarketplaceSearch.service.js';
 import { getProductById, searchProducts as aggregateSearchProducts } from '../../src/services/search/productSearch.service.js';
 
 export async function listProducts(req, res, next) {
@@ -208,7 +208,8 @@ export async function publicSearchProducts(req, res, next) {
         const fallbackReason = accessToken && [403, 429].includes(error?.status || error?.response?.status)
           ? 'official_search_blocked'
           : fallbackReasonFor(error);
-        const externalProducts = await searchMarketplaceExternally(query, source, { limit: 20 });
+        const externalResult = await searchMarketplaceExternallyDetailed(query, source, { limit: 20 });
+        const externalProducts = externalResult.products;
         if (externalProducts.length) {
           const normalized = await normalizePublicProducts(externalProducts, source, query, 'external');
           sources[source] = {
@@ -218,7 +219,8 @@ export async function publicSearchProducts(req, res, next) {
             authenticated: Boolean(accessToken),
             fallbackUsed: false,
             fallbackReason: null,
-            message: 'Busca real via fonte externa configurada.'
+            message: 'Busca real via fonte externa configurada.',
+            externalDiagnostics: externalResult.diagnostics
           };
           results.push(...normalized);
           continue;
@@ -232,6 +234,7 @@ export async function publicSearchProducts(req, res, next) {
           source,
           authenticated: Boolean(accessToken),
           externalProviderConfigured: hasExternalSearchProvider(),
+          externalDiagnostics: externalResult.diagnostics,
           fallbackUsed: true,
           fallbackReason,
           message: hasExternalSearchProvider()

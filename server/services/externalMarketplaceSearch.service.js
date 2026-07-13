@@ -18,23 +18,33 @@ export function hasExternalSearchProvider() {
 }
 
 export async function searchMarketplaceExternally(query, marketplace, options = {}) {
+  const result = await searchMarketplaceExternallyDetailed(query, marketplace, options);
+  return result.products;
+}
+
+export async function searchMarketplaceExternallyDetailed(query, marketplace, options = {}) {
   const config = marketplaceQueries[marketplace];
-  if (!config) return [];
+  if (!config) return { products: [], diagnostics: [{ provider: 'externalSearch', ok: false, message: 'Marketplace sem busca externa configurada.' }] };
 
   const providers = [
     searchWithSerpApi,
     searchWithGoogleCustomSearch
   ];
+  const diagnostics = [];
 
   for (const provider of providers) {
     const products = await provider(query, config, options).catch((error) => {
-      console.warn(`[EXTERNAL_SEARCH] provider=${provider.name} marketplace=${marketplace} error="${externalErrorMessage(error)}"`);
+      const message = externalErrorMessage(error);
+      diagnostics.push({ provider: provider.name, ok: false, message });
+      console.warn(`[EXTERNAL_SEARCH] provider=${provider.name} marketplace=${marketplace} error="${message}"`);
       return [];
     });
-    if (products.length) return products;
+    if (products.diagnostic) diagnostics.push(products.diagnostic);
+    const list = Array.isArray(products) ? products : products.items || [];
+    if (list.length) return { products: list, diagnostics };
   }
 
-  return [];
+  return { products: [], diagnostics };
 }
 
 async function searchWithSerpApi(query, config, options = {}) {
@@ -55,6 +65,7 @@ async function searchWithSerpApi(query, config, options = {}) {
   const items = data.shopping_results || data.organic_results || [];
   const products = items.map((item) => externalProduct(item, config, 'serpApi')).filter(hasRealProductFields);
   console.log(`[EXTERNAL_SEARCH] provider=serpApi site=${config.site} items=${items.length} products=${products.length}`);
+  products.diagnostic = { provider: 'serpApi', ok: products.length > 0, items: items.length, products: products.length };
   return products;
 }
 
@@ -77,9 +88,19 @@ async function searchWithGoogleCustomSearch(query, config, options = {}) {
   const items = data.items || [];
   const products = items.map((item) => externalProduct(item, config, 'googleCustomSearch')).filter(hasRealProductFields);
   console.log(`[EXTERNAL_SEARCH] provider=googleCustomSearch site=${config.site} items=${items.length} products=${products.length}`);
-  if (products.length) return products;
+  if (products.length) {
+    products.diagnostic = { provider: 'googleCustomSearch', ok: true, items: items.length, products: products.length };
+    return products;
+  }
 
   const imageResults = await searchWithGoogleImages(query, config, options);
+  imageResults.diagnostic = {
+    provider: 'googleCustomSearch',
+    ok: imageResults.length > 0,
+    items: items.length,
+    products: products.length,
+    imageProducts: imageResults.length
+  };
   return imageResults;
 }
 
@@ -102,6 +123,7 @@ async function searchWithGoogleImages(query, config, options = {}) {
   const items = data.items || [];
   const products = items.map((item) => externalProduct(item, config, 'googleImageSearch')).filter(hasRealProductFields);
   console.log(`[EXTERNAL_SEARCH] provider=googleImageSearch site=${config.site} items=${items.length} products=${products.length}`);
+  products.diagnostic = { provider: 'googleImageSearch', ok: products.length > 0, items: items.length, products: products.length };
   return products;
 }
 
