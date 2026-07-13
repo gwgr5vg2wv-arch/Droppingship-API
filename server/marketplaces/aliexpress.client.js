@@ -2,7 +2,7 @@ import axios from 'axios';
 import { missingConnectionError } from '../services/integrationMode.service.js';
 
 const apiBase = 'https://api-sg.aliexpress.com/sync';
-const authBase = 'https://api-sg.aliexpress.com';
+const oauthBase = 'https://oauth.aliexpress.com';
 
 function requireConfig() {
   if (!process.env.ALIEXPRESS_APP_KEY || !process.env.ALIEXPRESS_APP_SECRET) throw missingConnectionError('aliexpress');
@@ -32,12 +32,16 @@ export default {
 
   async exchangeCodeForToken(code) {
     requireConfig();
-    const { data } = await axios.post(`${authBase}/auth/token/create`, {
-      app_key: process.env.ALIEXPRESS_APP_KEY,
-      app_secret: process.env.ALIEXPRESS_APP_SECRET,
-      code
-    }, {
-      headers: { 'Content-Type': 'application/json' },
+    const redirectUri = process.env.ALIEXPRESS_REDIRECT_URI || 'http://localhost:3000/Droppingship/api/integrations/oauth/aliexpress/callback';
+    const { data } = await axios.post(`${oauthBase}/token`, new URLSearchParams({
+      code,
+      grant_type: 'authorization_code',
+      client_id: process.env.ALIEXPRESS_APP_KEY,
+      client_secret: process.env.ALIEXPRESS_APP_SECRET,
+      redirect_uri: redirectUri,
+      sp: 'ae'
+    }), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: 10000
     });
     return normalizeTokenResponse(data);
